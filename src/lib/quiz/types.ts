@@ -21,6 +21,8 @@ interface BaseQuestion {
   category: Category;
   /** Fine-grained subcategory (e.g. "React Hooks", "Visual & keyboard"). */
   topic: string;
+  /** True for the curated "challenge mode" pool; excluded from normal rounds. */
+  challenge?: boolean;
   type: QuestionType;
   difficulty: Difficulty;
   /** The question text. */
@@ -76,6 +78,8 @@ export interface QuizConfig {
   count: number;
   /** Optional subcategory filter — used to focus a round on weak topics. */
   topics?: string[];
+  /** When true, draw from the challenge pool instead of the normal pool. */
+  challenge?: boolean;
 }
 
 export interface QuizState {

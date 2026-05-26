@@ -31,7 +31,7 @@ export function selectQuestions(
   config: QuizConfig,
   rng: Rng = Math.random
 ): Question[] {
-  const { categories, count, topics } = config;
+  const { categories, count, topics, challenge = false } = config;
   if (categories.length === 0 || count <= 0) return [];
 
   const topicFilter = topics && topics.length > 0 ? new Set(topics) : null;
@@ -40,6 +40,7 @@ export function selectQuestions(
       bank.filter(
         (q) =>
           q.category === category &&
+          (q.challenge ?? false) === challenge &&
           (!topicFilter || topicFilter.has(q.topic))
       ),
       rng

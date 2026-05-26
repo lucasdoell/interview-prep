@@ -357,6 +357,33 @@ describe("mergeTopicStats", () => {
   });
 });
 
+describe("challenge filtering", () => {
+  const mixed = [
+    mcq("n1", "react"),
+    mcq("n2", "uiux"),
+    { ...mcq("c1", "react"), challenge: true },
+    { ...mcq("c2", "uiux"), challenge: true },
+  ];
+
+  it("excludes challenge questions from normal rounds", () => {
+    const out = selectQuestions(
+      mixed,
+      { categories: ["react", "uiux"], count: 10 },
+      makeRng(1)
+    );
+    expect(out.map((q) => q.id).sort()).toEqual(["n1", "n2"]);
+  });
+
+  it("includes only challenge questions when challenge is true", () => {
+    const out = selectQuestions(
+      mixed,
+      { categories: ["react", "uiux"], count: 10, challenge: true },
+      makeRng(1)
+    );
+    expect(out.map((q) => q.id).sort()).toEqual(["c1", "c2"]);
+  });
+});
+
 describe("rankTopicsByWeakness", () => {
   it("orders topics weakest (lowest accuracy) first", () => {
     const stats = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowClockwise, Play, Target } from "@phosphor-icons/react";
+import { ArrowClockwise, Lightning, Play, Target } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,10 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { rankTopicsByWeakness } from "@/lib/quiz/engine";
-import { QUESTION_BANK } from "@/lib/quiz/questions";
+import {
+  CHALLENGE_COUNT,
+  normalCountForCategory,
+} from "@/lib/quiz/questions";
 import {
   CATEGORIES,
   CATEGORY_BLURBS,
@@ -49,8 +52,8 @@ export function SetupScreen({
   const [count, setCount] = useState(12);
 
   const countsByCategory = useMemo(() => {
-    const counts = { react: 0, uiux: 0, a11y: 0 } as Record<Category, number>;
-    for (const q of QUESTION_BANK) counts[q.category]++;
+    const counts = {} as Record<Category, number>;
+    for (const c of CATEGORIES) counts[c] = normalCountForCategory(c);
     return counts;
   }, []);
 
@@ -90,6 +93,14 @@ export function SetupScreen({
       categories: [...CATEGORIES],
       count,
       topics: weakTopics.map((t) => t.topic),
+    });
+  }
+
+  function startChallenge() {
+    onStart({
+      categories: [...CATEGORIES],
+      count: CHALLENGE_COUNT,
+      challenge: true,
     });
   }
 
@@ -232,6 +243,30 @@ export function SetupScreen({
             {selected.size === 0
               ? "Select at least one topic"
               : `Start ${roundCount}-question round`}
+          </Button>
+        </CardFooter>
+      </Card>
+
+      <Card className="ring-primary/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-1.5">
+            <Lightning
+              weight="fill"
+              aria-hidden="true"
+              className="size-4 text-primary"
+            />
+            Challenge mode
+          </CardTitle>
+          <CardDescription>
+            {CHALLENGE_COUNT} of the toughest, most nuanced questions across
+            React, UI/UX, and accessibility — the kind where several answers
+            look right. No warm-up. Make sure you&rsquo;re ready for anything.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
+          <Button size="lg" variant="outline" onClick={startChallenge}>
+            <Lightning weight="fill" aria-hidden="true" />
+            Start the {CHALLENGE_COUNT}-question challenge
           </Button>
         </CardFooter>
       </Card>

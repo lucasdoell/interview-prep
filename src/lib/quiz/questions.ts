@@ -1248,6 +1248,461 @@ const a11y: QuestionDraft[] = [
 ];
 
 /**
+ * Challenge mode: a curated gauntlet of harder, more nuanced questions where
+ * several answers look reasonable and the distinction is subtle. Marked
+ * `challenge: true` so they're excluded from normal rounds.
+ */
+const challenge: QuestionDraft[] = [
+  {
+    id: "ch-react-stale-closure",
+    category: "react",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt: "`onScroll` always logs 0, even after `count` has increased. Why?",
+    code: `useEffect(() => {
+  function onScroll() {
+    console.log(count); // always 0
+  }
+  window.addEventListener("scroll", onScroll);
+  return () => window.removeEventListener("scroll", onScroll);
+}, []);`,
+    codeLang: "tsx",
+    options: [
+      {
+        id: "a",
+        text: "The `[]` deps run the effect once, so `onScroll` closes over `count` from the first render. Read it from a ref, or re-subscribe when `count` changes.",
+      },
+      {
+        id: "b",
+        text: "`addEventListener` only fires the handler once unless you pass `{ once: false }`.",
+      },
+      {
+        id: "c",
+        text: "`console.log` inside effects is throttled by React in development mode.",
+      },
+      {
+        id: "d",
+        text: "State updates are asynchronous, so `count` hasn't committed when `onScroll` runs.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Classic stale closure: the effect ran once with `count = 0`, and the listener captured that binding forever. Fix it by keeping the latest value in a ref, or by adding `count` to the deps so the listener is re-attached with the current value.",
+  },
+  {
+    id: "ch-react-derived-from-props",
+    category: "react",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "`<Price>` shows a stale number when the `amount` prop changes. Why, and what's the right fix?",
+    code: `function Price({ amount }) {
+  const [display, setDisplay] = useState(amount);
+  return <span>{display}</span>;
+}`,
+    codeLang: "tsx",
+    options: [
+      {
+        id: "a",
+        text: "`useState(amount)` only uses `amount` as the initial value; later prop changes are ignored. Render the prop directly (or reset via `key`) rather than copying it into state.",
+      },
+      {
+        id: "b",
+        text: "You need `useState(() => amount)` so the initializer re-runs whenever `amount` changes.",
+      },
+      {
+        id: "c",
+        text: "Function components can't sync props to state without `componentWillReceiveProps`.",
+      },
+      {
+        id: "d",
+        text: "Wrapping `<Price>` in `React.memo` would make it re-read the prop.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Initializing state from a prop snapshots it once — the state then has a life of its own. The fix is usually to not copy it at all (derive from the prop during render), or, if it genuinely needs local edits, remount with a `key` when the source changes. Lazy init `() => amount` still only runs once.",
+  },
+  {
+    id: "ch-react-effect-race",
+    category: "react",
+    challenge: true,
+    type: "code",
+    difficulty: "hard",
+    prompt:
+      "Typing quickly in a search box sometimes shows results for an earlier query (a race). Fix the effect so only the latest query's results are applied.",
+    code: `useEffect(() => {
+  fetchResults(query).then(setResults);
+}, [query]);`,
+    codeLang: "tsx",
+    starterCode: `useEffect(() => {
+  fetchResults(query).then(setResults);
+}, [query]);`,
+    referenceSolution: `useEffect(() => {
+  let ignore = false;
+  fetchResults(query).then((r) => {
+    if (!ignore) setResults(r);
+  });
+  return () => {
+    ignore = true;
+  };
+}, [query]);`,
+    explanation:
+      "Each render's effect can have an in-flight request; a slow earlier one can resolve after a newer one. The cleanup sets an `ignore` flag so a superseded response is discarded. (An `AbortController` to cancel the fetch works too.)",
+  },
+  {
+    id: "ch-react-key-reset",
+    category: "react",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "A profile editor holds its own draft state. When the user switches profiles, the previous draft text lingers in the inputs. What's the cleanest fix?",
+    options: [
+      {
+        id: "a",
+        text: "Give the editor `key={profileId}` so React remounts it with fresh state when the profile changes.",
+      },
+      {
+        id: "b",
+        text: "Add a `useEffect` that resets every field whenever `profileId` changes.",
+      },
+      {
+        id: "c",
+        text: "Lift all draft state into the parent and clear it in the switch handler.",
+      },
+      {
+        id: "d",
+        text: "Wrap the editor in `React.memo` so it re-initializes on new props.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Changing a component's `key` tells React to treat it as a new instance and remount it — the idiomatic way to reset internal state on identity change. The effect-reset approach works but is verbose and easy to get subtly wrong; `React.memo` does the opposite of re-initializing.",
+  },
+  {
+    id: "ch-react-batching",
+    category: "react",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "In React 19, how many re-renders does this cause after the awaited call resolves?",
+    code: `async function save() {
+  await api.save();
+  setSaving(false);
+  setSaved(true);
+}`,
+    codeLang: "tsx",
+    options: [
+      {
+        id: "a",
+        text: "One — React 18+ automatically batches updates, including those after `await` and in timeouts/promises.",
+      },
+      {
+        id: "b",
+        text: "Two — automatic batching applies only inside React event handlers, not async callbacks.",
+      },
+      {
+        id: "c",
+        text: "Two, unless both setters are wrapped in `flushSync`.",
+      },
+      {
+        id: "d",
+        text: "Zero until the next user interaction flushes the queue.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Automatic batching (React 18+) groups multiple state updates into a single render even across `await`, `setTimeout`, and native handlers. Pre-18, updates outside React handlers weren't batched — that's the trap in option B. `flushSync` is for opting *out* of batching.",
+  },
+  {
+    id: "ch-uiux-optimistic",
+    category: "uiux",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "For which action is optimistic UI (show success immediately, reconcile later) the WORST fit?",
+    options: [
+      {
+        id: "a",
+        text: "Submitting an irreversible payment, where a silent rollback would mislead the user about whether money actually moved.",
+      },
+      { id: "b", text: "Liking or unliking a post." },
+      { id: "c", text: "Toggling a preference that's trivial to revert." },
+      { id: "d", text: "Reordering items in a list." },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Optimistic UI shines for cheap, reversible, low-stakes actions where failure is rare and recoverable. For high-stakes or irreversible operations like payments, showing premature success is dangerous — users need a truthful, confirmed result.",
+  },
+  {
+    id: "ch-uiux-loader-timing",
+    category: "uiux",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "A request usually returns in ~150ms but occasionally takes 2s. What's the best loading treatment?",
+    options: [
+      {
+        id: "a",
+        text: "Delay showing the loader ~300–500ms, so fast responses never flash a spinner but slow ones still get feedback.",
+      },
+      {
+        id: "b",
+        text: "Always show a spinner immediately, for consistency across requests.",
+      },
+      {
+        id: "c",
+        text: "Never show a loader — 2s is within acceptable response limits.",
+      },
+      {
+        id: "d",
+        text: "Show a full-screen skeleton on every request regardless of how long it takes.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Flashing a spinner for a 150ms response is jarring and makes the UI feel slower. A short delay threshold suppresses the loader for quick responses while still covering the occasional slow one. Always-on or never-on both fail one of the two cases.",
+  },
+  {
+    id: "ch-uiux-error-summary",
+    category: "uiux",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "A long form fails validation on submit with several errors. Beyond inline messages, what most helps users recover?",
+    options: [
+      {
+        id: "a",
+        text: "Show an error summary at the top — each item links to and focuses its field — and move focus to the summary on submit.",
+      },
+      {
+        id: "b",
+        text: "Scroll to the bottom so the submit button stays visible.",
+      },
+      {
+        id: "c",
+        text: "Disable the valid fields so the user only sees what's broken.",
+      },
+      {
+        id: "d",
+        text: "Show a single generic 'Please fix the errors below' toast.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "For long forms, a focusable error summary that links to each invalid field (plus inline messages) is the accessible, recoverable pattern — the user immediately sees what's wrong and can jump straight to it. A generic toast or hiding fields leaves them hunting.",
+  },
+  {
+    id: "ch-uiux-modal-misuse",
+    category: "uiux",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt: "Which is the WEAKEST use case for a modal dialog?",
+    options: [
+      {
+        id: "a",
+        text: "A long, multi-step form with content users may need to cross-reference elsewhere in the app.",
+      },
+      { id: "b", text: "Confirming an irreversible, destructive action." },
+      { id: "c", text: "A short, focused task such as renaming an item." },
+      { id: "d", text: "An important alert that needs explicit acknowledgement." },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Modals suit short, focused, interrupting interactions. A long multi-step flow trapped in a modal fights the user — especially on mobile, and when they need to reference other content. That belongs on its own page or route.",
+  },
+  {
+    id: "ch-uiux-infinite-scroll",
+    category: "uiux",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "What's a well-known drawback of infinite scroll that pagination avoids?",
+    options: [
+      {
+        id: "a",
+        text: "It makes the footer and anything below the feed hard to reach, and breaks restoring your position on back-navigation.",
+      },
+      {
+        id: "b",
+        text: "Infinite scroll can't be made accessible under any circumstances.",
+      },
+      {
+        id: "c",
+        text: "Pagination always transfers less data and therefore always loads faster.",
+      },
+      {
+        id: "d",
+        text: "Infinite scroll prevents the browser from caching any fetched results.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Two classic infinite-scroll problems: footer/below-feed content becomes unreachable, and returning to a remembered scroll position after navigating away is unreliable. Pagination gives stable, linkable, restorable positions. The other options overstate or invent issues.",
+  },
+  {
+    id: "ch-a11y-route-focus",
+    category: "a11y",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "In a client-side-routed app, activating a nav link swaps in new main content. What should happen for keyboard and screen-reader users?",
+    options: [
+      {
+        id: "a",
+        text: "Move focus to the new view's heading (or its container) and/or announce the change, since no full page load occurs to reset focus.",
+      },
+      {
+        id: "b",
+        text: "Nothing — the browser moves focus to the top of the document on any navigation.",
+      },
+      {
+        id: "c",
+        text: "Wrap the whole new view in `aria-live=\"assertive\"` so it's read out.",
+      },
+      {
+        id: "d",
+        text: "Return focus to the nav link that was activated.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Client-side route changes don't trigger the browser's normal focus reset, so focus can be left on a now-gone element. Move focus to the new heading/region (and optionally announce it). Reading the entire view via an assertive live region is overwhelming.",
+  },
+  {
+    id: "ch-a11y-label-in-name",
+    category: "a11y",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "A button shows the text 'Search' but has `aria-label=\"Submit query\"`. Why can this hurt users?",
+    code: `<button aria-label="Submit query">Search</button>`,
+    codeLang: "tsx",
+    options: [
+      {
+        id: "a",
+        text: "The accessible name no longer contains the visible text, so a voice-control user saying 'click Search' can't activate it (WCAG 2.5.3, Label in Name).",
+      },
+      {
+        id: "b",
+        text: "`aria-label` is ignored whenever a button has visible text, so it has no effect.",
+      },
+      {
+        id: "c",
+        text: "Screen readers announce both, so the user hears 'Submit query Search'.",
+      },
+      {
+        id: "d",
+        text: "`aria-label` is only valid on form inputs, not on buttons.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "`aria-label` overrides the visible text as the accessible name. When the visible label isn't part of that name, speech-input users who say what they see can't target the control — the Label in Name failure. Keep the visible text within the accessible name.",
+  },
+  {
+    id: "ch-a11y-aria-disabled",
+    category: "a11y",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "In a toolbar you want a temporarily-unavailable button to stay keyboard-focusable and discoverable. Which is better?",
+    options: [
+      {
+        id: "a",
+        text: "`aria-disabled=\"true\"` (and no-op the handler) — it conveys the disabled state while keeping the control in the tab order.",
+      },
+      {
+        id: "b",
+        text: "The native `disabled` attribute, which keeps it focusable but greys it out.",
+      },
+      {
+        id: "c",
+        text: "Hide it with `hidden` until it becomes available.",
+      },
+      {
+        id: "d",
+        text: "`tabindex=\"-1\"` plus a greyed-out style.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Native `disabled` removes a control from the tab order and from many AT interactions, so users may not discover it — bad for toolbars/menus where you want roving focus over all items. `aria-disabled` announces the state while keeping it focusable; you just prevent activation yourself.",
+  },
+  {
+    id: "ch-a11y-modal-requirements",
+    category: "a11y",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt: "Which set of behaviors does an accessible modal dialog require?",
+    options: [
+      {
+        id: "a",
+        text: "Trap focus while open, return focus to the trigger on close, label it (`aria-labelledby`), expose `role=\"dialog\"`/`aria-modal`, and close on Escape.",
+      },
+      {
+        id: "b",
+        text: "Center it visually and dim the background with an overlay.",
+      },
+      {
+        id: "c",
+        text: "Put `aria-hidden=\"true\"` on the dialog so the rest of the page isn't announced.",
+      },
+      {
+        id: "d",
+        text: "Auto-focus the first field on open — nothing else is needed.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "The dialog pattern needs focus management (trap + restore), a name, the right role/`aria-modal`, and Escape-to-close. Option C is backwards — you mark the *background* inert/hidden, not the dialog. Visual centering and a single auto-focus aren't enough on their own.",
+  },
+  {
+    id: "ch-a11y-focus-on-delete",
+    category: "a11y",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "A user deletes the list row that currently holds keyboard focus. Where should focus go?",
+    options: [
+      {
+        id: "a",
+        text: "To a sensible neighbour — the next row, or the previous one if it was last — never left on the removed node or dropped to `<body>`.",
+      },
+      {
+        id: "b",
+        text: "It doesn't matter; the browser handles focus when an element is removed.",
+      },
+      {
+        id: "c",
+        text: "Back to the top of the page so the user can re-orient.",
+      },
+      {
+        id: "d",
+        text: "Only into an `aria-live` region announcing the deletion, with no focus move.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "When you remove the focused element, the browser drops focus to `<body>`, stranding keyboard and screen-reader users. Deliberately move focus to a logical neighbour (next/previous item, or a heading). Announcing the deletion is a nice addition but doesn't solve the lost-focus problem.",
+  },
+];
+
+/**
  * Subcategory for each question, kept in one place so the taxonomy is easy to
  * read and adjust. Used to track which areas the user struggles with and to
  * offer focused, weak-area practice rounds.
@@ -1301,6 +1756,22 @@ const TOPIC_BY_ID: Record<string, string> = {
   "a11y-fix-label": "Names & labels",
   "a11y-fix-img-alt": "Names & labels",
   "a11y-fix-icon-button": "Names & labels",
+  // Challenge mode (feeds the same topic stats as the normal pool)
+  "ch-react-stale-closure": "React Hooks",
+  "ch-react-derived-from-props": "State & props",
+  "ch-react-effect-race": "React Hooks",
+  "ch-react-key-reset": "Rendering & keys",
+  "ch-react-batching": "State & props",
+  "ch-uiux-optimistic": "Interaction & feedback",
+  "ch-uiux-loader-timing": "Interaction & feedback",
+  "ch-uiux-error-summary": "Interaction & feedback",
+  "ch-uiux-modal-misuse": "UX heuristics",
+  "ch-uiux-infinite-scroll": "UX heuristics",
+  "ch-a11y-route-focus": "Visual & keyboard",
+  "ch-a11y-label-in-name": "Names & labels",
+  "ch-a11y-aria-disabled": "Semantic structure",
+  "ch-a11y-modal-requirements": "Semantic structure",
+  "ch-a11y-focus-on-delete": "Visual & keyboard",
 };
 
 function attachTopic(draft: QuestionDraft): Question {
@@ -1309,9 +1780,23 @@ function attachTopic(draft: QuestionDraft): Question {
   return { ...draft, topic } as Question;
 }
 
-export const QUESTION_BANK: Question[] = [...react, ...uiux, ...a11y].map(
-  attachTopic
-);
+export const QUESTION_BANK: Question[] = [
+  ...react,
+  ...uiux,
+  ...a11y,
+  ...challenge,
+].map(attachTopic);
+
+/** Number of questions in the challenge pool. */
+export const CHALLENGE_COUNT = QUESTION_BANK.filter((q) => q.challenge).length;
+
+/** Count of normal (non-challenge) questions in a category. */
+export function normalCountForCategory(
+  category: Question["category"]
+): number {
+  return QUESTION_BANK.filter((q) => q.category === category && !q.challenge)
+    .length;
+}
 
 /** All topics that exist for a category, in first-seen order. */
 export function topicsForCategory(category: Question["category"]): string[] {
