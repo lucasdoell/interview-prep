@@ -141,6 +141,40 @@ describe("selectQuestions", () => {
       selectQuestions(bank, { categories: [], count: 5 }, makeRng(1))
     ).toEqual([]);
   });
+
+  it("preserves each MCQ's options and correct answer when shuffling order", () => {
+    const out = selectQuestions(
+      bank,
+      { categories: ["react", "uiux", "a11y"], count: 9 },
+      makeRng(5)
+    );
+    for (const q of out) {
+      if (q.type !== "mcq") continue;
+      const original = bank.find(
+        (b) => b.id === q.id
+      ) as MultipleChoiceQuestion;
+      // Same set of option ids, correct id unchanged.
+      expect(q.options.map((o) => o.id).sort()).toEqual(
+        original.options.map((o) => o.id).sort()
+      );
+      expect(q.correctOptionId).toBe(original.correctOptionId);
+    }
+  });
+
+  it("does not leave the correct option fixed in first position across questions", () => {
+    // The bank has correctOptionId === "a" for every MCQ; after shuffling,
+    // the correct answer should not always be the first option.
+    const out = selectQuestions(
+      bank,
+      { categories: ["react", "uiux", "a11y"], count: 9 },
+      makeRng(9)
+    );
+    const mcqs = out.filter((q) => q.type === "mcq");
+    const firstIsCorrect = mcqs.filter(
+      (q) => q.type === "mcq" && q.options[0].id === q.correctOptionId
+    );
+    expect(firstIsCorrect.length).toBeLessThan(mcqs.length);
+  });
 });
 
 describe("gradeMcq", () => {

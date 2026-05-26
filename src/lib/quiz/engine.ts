@@ -54,7 +54,11 @@ export function selectQuestions(
     }
   }
 
-  return shuffle(selected, rng);
+  // Shuffle the final order, and shuffle each MCQ's options so the correct
+  // answer isn't always in the same position (grading is by id, not index).
+  return shuffle(selected, rng).map((q) =>
+    q.type === "mcq" ? { ...q, options: shuffle(q.options, rng) } : q
+  );
 }
 
 export function gradeMcq(
