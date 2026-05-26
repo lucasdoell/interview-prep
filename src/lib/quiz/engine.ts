@@ -1,3 +1,4 @@
+import { CATEGORIES } from "./types";
 import type {
   AnswerRecord,
   Category,
@@ -260,7 +261,5 @@ export function categoriesInQuestions(
   questions: readonly Question[]
 ): Category[] {
   const present = new Set(questions.map((q) => q.category));
-  return (["react", "uiux", "a11y"] as Category[]).filter((c) =>
-    present.has(c)
-  );
+  return CATEGORIES.filter((c) => present.has(c));
 }

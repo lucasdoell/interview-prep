@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { CHALLENGE_COUNT, QUESTION_BANK } from "./questions";
 
 describe("QUESTION_BANK", () => {
-  it("has 15 challenge-mode questions", () => {
-    expect(CHALLENGE_COUNT).toBe(15);
+  it("has 18 challenge-mode questions", () => {
+    expect(CHALLENGE_COUNT).toBe(18);
   });
 
   it("gives every question a non-empty topic", () => {

@@ -1,17 +1,19 @@
-export type Category = "react" | "uiux" | "a11y";
+export type Category = "react" | "nextjs" | "uiux" | "a11y";
 export type QuestionType = "mcq" | "code";
 export type Difficulty = "easy" | "medium" | "hard";
 
-export const CATEGORIES: Category[] = ["react", "uiux", "a11y"];
+export const CATEGORIES: Category[] = ["react", "nextjs", "uiux", "a11y"];
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   react: "React",
+  nextjs: "Next.js",
   uiux: "UI/UX",
   a11y: "Accessibility",
 };
 
 export const CATEGORY_BLURBS: Record<Category, string> = {
   react: "Hooks, state, rendering, and common pitfalls.",
+  nextjs: "App Router, Server Components, data fetching, and caching.",
   uiux: "Visual hierarchy, feedback, forms, and interaction design.",
   a11y: "Semantic HTML, ARIA, keyboard, and inclusive patterns.",
 };

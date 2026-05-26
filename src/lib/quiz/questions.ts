@@ -1267,6 +1267,355 @@ const a11y: QuestionDraft[] = [
   },
 ];
 
+const nextjs: QuestionDraft[] = [
+  {
+    id: "next-server-components-default",
+    category: "nextjs",
+    type: "mcq",
+    difficulty: "medium",
+    prompt:
+      "In the App Router, a `page.tsx` with no directive at the top renders as what?",
+    options: [
+      {
+        id: "a",
+        text: "A Server Component that runs on the server and ships no component-level JS to the browser.",
+      },
+      {
+        id: "b",
+        text: "A Client Component, since everything under `app/` hydrates and runs in the browser by default.",
+      },
+      {
+        id: "c",
+        text: "A static HTML file with no React runtime attached on either the server or the client side.",
+      },
+      {
+        id: "d",
+        text: "Either one, decided per render depending on whether the component happens to read any props.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "In the App Router, layouts and pages are Server Components by default — they render on the server and send no component JavaScript to the client unless you opt into a Client Component with `'use client'`.",
+  },
+  {
+    id: "next-use-client-when",
+    category: "nextjs",
+    type: "mcq",
+    difficulty: "medium",
+    prompt: "When do you need to add the `'use client'` directive to a component?",
+    options: [
+      {
+        id: "a",
+        text: "When it uses state, effects, event handlers, or browser-only APIs like `window`.",
+      },
+      {
+        id: "b",
+        text: "Whenever the component needs to fetch data from an API or database to render itself.",
+      },
+      {
+        id: "c",
+        text: "On every component in the `app/` directory, since the directive is required there.",
+      },
+      {
+        id: "d",
+        text: "Only on components that render an `<a>` tag or otherwise start a client-side navigation.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "`'use client'` marks the boundary where code starts running in the browser. You need it for interactivity — state, effects, event handlers, browser APIs. Server Components can fetch data perfectly well without it.",
+  },
+  {
+    id: "next-async-params",
+    category: "nextjs",
+    type: "mcq",
+    difficulty: "hard",
+    prompt: "In Next.js 16, what's wrong with this page?",
+    code: `export default function Page({ params }) {
+  return <h1>{params.slug}</h1>;
+}`,
+    codeLang: "tsx",
+    options: [
+      {
+        id: "a",
+        text: "`params` is now a Promise — make the component `async` and `await params` before reading it.",
+      },
+      {
+        id: "b",
+        text: "`params` only exists on layouts; a page has to read route values with the `useParams()` hook.",
+      },
+      {
+        id: "c",
+        text: "You must destructure it as `{ params: { slug } }` directly in the function's signature.",
+      },
+      {
+        id: "d",
+        text: "Pages can't read route segments at all; you need a Route Handler to get at the `slug`.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "In Next.js 15+/16, `params` (and `searchParams`) are Promises. Make the page an `async` function and `const { slug } = await params`. Reading `params.slug` synchronously is the bug.",
+  },
+  {
+    id: "next-searchparams-dynamic",
+    category: "nextjs",
+    type: "mcq",
+    difficulty: "hard",
+    prompt: "Reading `searchParams` in a Server Component page does what to the route?",
+    options: [
+      {
+        id: "a",
+        text: "Opts it into dynamic rendering, since the params are only known at request time.",
+      },
+      {
+        id: "b",
+        text: "Forces it to be statically prerendered at build time using empty search parameters.",
+      },
+      {
+        id: "c",
+        text: "Throws at build unless you also export `generateStaticParams` to list the values.",
+      },
+      {
+        id: "d",
+        text: "Switches the page to client rendering so the browser itself can read the query string.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "`searchParams` depends on the incoming request, so reading it opts the page into dynamic rendering. If you only need it on the client, the `useSearchParams` hook reads it without making the whole page dynamic.",
+  },
+  {
+    id: "next-fetch-not-cached",
+    category: "nextjs",
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "In Next.js 16, how is a plain `await fetch(url)` in a Server Component treated by default?",
+    options: [
+      {
+        id: "a",
+        text: "Not cached — it runs on every request and blocks rendering until the response arrives.",
+      },
+      {
+        id: "b",
+        text: "Cached indefinitely until you manually revalidate it, like earlier App Router versions.",
+      },
+      {
+        id: "c",
+        text: "Cached only in production builds, while every request refetches during development.",
+      },
+      {
+        id: "d",
+        text: "Cached per user session, so each visitor fetches once and reuses the result afterward.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Unlike earlier App Router versions, `fetch` is no longer cached by default — it runs each request and blocks the render. To cache it you opt in (e.g. the `use cache` directive), or wrap the component in `<Suspense>` to stream it.",
+  },
+  {
+    id: "next-fetch-dedupe",
+    category: "nextjs",
+    type: "mcq",
+    difficulty: "medium",
+    prompt:
+      "Two components in one render both call `fetch('/api/user')` with identical options. What happens?",
+    options: [
+      {
+        id: "a",
+        text: "React memoizes the request, so the identical `fetch` runs once and both reuse the result.",
+      },
+      {
+        id: "b",
+        text: "Both run independently, so you must wrap the call in `React.cache` to avoid a duplicate.",
+      },
+      {
+        id: "c",
+        text: "Next throws a hydration error, because the same request was issued twice in one render.",
+      },
+      {
+        id: "d",
+        text: "The second call is queued and only runs once the first has fully resolved and rendered.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Identical `fetch` requests in a single render pass are automatically memoized (deduped), so you can fetch in the component that needs the data instead of prop-drilling. `React.cache` is for deduping non-`fetch` work like ORM calls.",
+  },
+  {
+    id: "next-server-actions",
+    category: "nextjs",
+    type: "mcq",
+    difficulty: "medium",
+    prompt:
+      "What's the idiomatic way to handle a form submission that mutates data on the server?",
+    options: [
+      {
+        id: "a",
+        text: "Define an `async` function with `'use server'` and pass it to the form's `action` prop.",
+      },
+      {
+        id: "b",
+        text: "POST to a Route Handler with `fetch` from a client component, then revalidate on success.",
+      },
+      {
+        id: "c",
+        text: "Use `getServerSideProps` to run the mutation whenever the page is requested by a browser.",
+      },
+      {
+        id: "d",
+        text: "Define the mutation inline in a Client Component that's marked with the `'use server'` line.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "A Server Action — an async function with `'use server'` passed to `<form action={...}>` — is the idiomatic mutation path and works without client JS. You can't define Server Actions inside Client Components (only import them), and `getServerSideProps` is Pages-Router only.",
+  },
+  {
+    id: "next-route-handlers",
+    category: "nextjs",
+    type: "mcq",
+    difficulty: "medium",
+    prompt:
+      "To build a JSON API endpoint inside `app/`, you create a `route.ts` file and export…",
+    options: [
+      {
+        id: "a",
+        text: "`async` functions named for each HTTP method, e.g. `export async function GET(request) {}`.",
+      },
+      {
+        id: "b",
+        text: "a single default-exported handler that takes the request and response objects as arguments.",
+      },
+      {
+        id: "c",
+        text: "an `api.ts` file with a `handler(req, res)` function, exactly as the Pages Router used to.",
+      },
+      {
+        id: "d",
+        text: "a `page.tsx` that returns a `Response` object rather than rendering any React markup.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "Route Handlers live in `route.ts` and export functions named after HTTP methods (`GET`, `POST`, …) that take a Web `Request` and return a `Response`. A `route.ts` can't sit at the same segment as a `page.tsx`.",
+  },
+  {
+    id: "next-link-prefetch",
+    category: "nextjs",
+    type: "mcq",
+    difficulty: "medium",
+    prompt:
+      "Why prefer `<Link>` from `next/link` over a plain `<a>` for internal navigation?",
+    options: [
+      {
+        id: "a",
+        text: "It does client-side transitions and automatically prefetches the route as it enters view.",
+      },
+      {
+        id: "b",
+        text: "A plain `<a>` tag simply doesn't work for any routes that live inside the `app/` directory.",
+      },
+      {
+        id: "c",
+        text: "`<Link>` is required for every internal `href`, and Next throws on a bare `<a>` to a route.",
+      },
+      {
+        id: "d",
+        text: "It turns external URLs into client-side transitions too, so they avoid a full page reload.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "`<Link>` gives client-side transitions and prefetches routes as they enter the viewport (or on hover), so navigation feels instant. A plain `<a>` still works — it just triggers a full reload and isn't prefetched.",
+  },
+  {
+    id: "next-server-to-client-props",
+    category: "nextjs",
+    type: "mcq",
+    difficulty: "medium",
+    prompt: "How do you get data fetched in a Server Component into a Client Component?",
+    options: [
+      {
+        id: "a",
+        text: "Pass it down as serializable props, or hand the Client Component a promise to `use()`.",
+      },
+      {
+        id: "b",
+        text: "Import the server data-fetching function directly and call it inside the Client Component.",
+      },
+      {
+        id: "c",
+        text: "Use `getServerSideProps`, which injects the fetched data into the client component's props.",
+      },
+      {
+        id: "d",
+        text: "You can't — Client Components must fetch all of their own data through a browser request.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "A Server Component fetches, then passes the data to a Client Component as serializable props (or passes a promise the client reads with `use()`). Importing server-only data functions into a Client Component would run them in the browser.",
+  },
+  {
+    id: "next-metadata",
+    category: "nextjs",
+    type: "mcq",
+    difficulty: "medium",
+    prompt: "What's the App Router way to set a page's `<title>` and meta tags?",
+    options: [
+      {
+        id: "a",
+        text: "Export a `metadata` object (or a `generateMetadata` function) from the page or layout.",
+      },
+      {
+        id: "b",
+        text: "Render a `<Head>` from `next/head` containing the `<title>` inside the page component.",
+      },
+      {
+        id: "c",
+        text: "Set `document.title` inside a `useEffect` so it updates right after the page mounts.",
+      },
+      {
+        id: "d",
+        text: "Add a `<title>` tag by hand into the `<head>` you return from the root layout component.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "The App Router uses the Metadata API: export a static `metadata` object or a dynamic `generateMetadata` function from a layout or page. `next/head` is the Pages-Router approach and isn't used here.",
+  },
+  {
+    id: "next-loading-streaming",
+    category: "nextjs",
+    type: "mcq",
+    difficulty: "medium",
+    prompt: "What does adding a `loading.tsx` file to a route folder do?",
+    options: [
+      {
+        id: "a",
+        text: "Wraps that segment in a Suspense boundary and shows its UI while the page renders.",
+      },
+      {
+        id: "b",
+        text: "Runs before any data fetching to block the route until everything is ready to display.",
+      },
+      {
+        id: "c",
+        text: "Provides a fallback only for the Client Components in the segment, not Server Components.",
+      },
+      {
+        id: "d",
+        text: "Replaces `error.tsx`, rendering whenever the segment throws while it's rendering on the server.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "`loading.tsx` automatically wraps the page (and its children) in a `<Suspense>` boundary and shows instant fallback UI while the segment streams in. `error.tsx` is the separate file for handling thrown errors.",
+  },
+];
+
 /**
  * Challenge mode: a curated gauntlet of harder, more nuanced questions where
  * several answers look reasonable and the distinction is subtle. Marked
@@ -1738,6 +2087,96 @@ const challenge: QuestionDraft[] = [
     explanation:
       "When you remove the focused element, the browser drops focus to `<body>`, stranding keyboard and screen-reader users. Deliberately move focus to a logical neighbour (next/previous item, or a heading). Announcing the deletion is a nice addition but doesn't solve the lost-focus problem.",
   },
+  {
+    id: "ch-next-use-cache-config",
+    category: "nextjs",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "You add `'use cache'` to a function, but the build errors out. What's the most likely cause?",
+    options: [
+      {
+        id: "a",
+        text: "`use cache` is a Cache Components feature; you must set `cacheComponents: true` in the config.",
+      },
+      {
+        id: "b",
+        text: "`use cache` only works at the very top of a file, never inline at the top of a function.",
+      },
+      {
+        id: "c",
+        text: "`use cache` was removed in Next.js 16 in favour of the older `unstable_cache` wrapper.",
+      },
+      {
+        id: "d",
+        text: "You also have to call `cacheLife()` inside the function, or the directive is just a no-op.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "`use cache` is part of Cache Components and requires `cacheComponents: true` in `next.config.ts`. Once enabled, it works at file, component, or function level. `unstable_cache` still exists but didn't replace it.",
+  },
+  {
+    id: "ch-next-async-request-apis",
+    category: "nextjs",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "In Next.js 16, what do `cookies()`, `headers()`, and a page's `params` have in common?",
+    options: [
+      {
+        id: "a",
+        text: "They're all async now — each returns a promise you have to `await` before reading it.",
+      },
+      {
+        id: "b",
+        text: "They're only available inside Route Handlers, never within a Server Component's render.",
+      },
+      {
+        id: "c",
+        text: "They're synchronous in Server Components but become async inside any Client Component.",
+      },
+      {
+        id: "d",
+        text: "They each require the `'use server'` directive at the top of the file to be callable.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "In Next.js 15+/16 the request-scoped APIs `cookies()`, `headers()`, `draftMode()`, and `params`/`searchParams` are all asynchronous — you `await` them. Accessing them also marks the route as dynamic.",
+  },
+  {
+    id: "ch-next-loading-blocked",
+    category: "nextjs",
+    challenge: true,
+    type: "mcq",
+    difficulty: "hard",
+    prompt:
+      "A same-segment `loading.tsx` exists, but navigation still blocks instead of showing it. Why?",
+    options: [
+      {
+        id: "a",
+        text: "The layout reads runtime data (cookies/headers/uncached fetch), which blocks the segment.",
+      },
+      {
+        id: "b",
+        text: "`loading.tsx` only ever covers Client Components, so a server-rendered layout ignores it.",
+      },
+      {
+        id: "c",
+        text: "`loading.tsx` was deprecated in Next.js 16; only a hand-written `<Suspense>` works now.",
+      },
+      {
+        id: "d",
+        text: "Layouts never trigger loading states — only a `page.tsx` can have a `loading.tsx` sibling.",
+      },
+    ],
+    correctOptionId: "a",
+    explanation:
+      "A `loading.tsx` wraps the page, not the layout above it. If the layout itself awaits runtime/uncached data, it blocks navigation rather than falling back to a same-segment `loading.tsx`. Fix it by wrapping that access in its own `<Suspense>` or moving it into `page.tsx`.",
+  },
 ];
 
 /**
@@ -1794,6 +2233,19 @@ const TOPIC_BY_ID: Record<string, string> = {
   "a11y-fix-label": "Names & labels",
   "a11y-fix-img-alt": "Names & labels",
   "a11y-fix-icon-button": "Names & labels",
+  // Next.js
+  "next-server-components-default": "App Router",
+  "next-use-client-when": "App Router",
+  "next-async-params": "App Router",
+  "next-searchparams-dynamic": "App Router",
+  "next-fetch-not-cached": "Data & caching",
+  "next-fetch-dedupe": "Data & caching",
+  "next-server-actions": "Data & caching",
+  "next-route-handlers": "Data & caching",
+  "next-link-prefetch": "Navigation & rendering",
+  "next-server-to-client-props": "Navigation & rendering",
+  "next-metadata": "Navigation & rendering",
+  "next-loading-streaming": "App Router",
   // Challenge mode (feeds the same topic stats as the normal pool)
   "ch-react-stale-closure": "React Hooks",
   "ch-react-derived-from-props": "State & props",
@@ -1810,6 +2262,9 @@ const TOPIC_BY_ID: Record<string, string> = {
   "ch-a11y-aria-disabled": "Semantic structure",
   "ch-a11y-modal-requirements": "Semantic structure",
   "ch-a11y-focus-on-delete": "Visual & keyboard",
+  "ch-next-use-cache-config": "Data & caching",
+  "ch-next-async-request-apis": "App Router",
+  "ch-next-loading-blocked": "Data & caching",
 };
 
 function attachTopic(draft: QuestionDraft): Question {
@@ -1820,6 +2275,7 @@ function attachTopic(draft: QuestionDraft): Question {
 
 export const QUESTION_BANK: Question[] = [
   ...react,
+  ...nextjs,
   ...uiux,
   ...a11y,
   ...challenge,
