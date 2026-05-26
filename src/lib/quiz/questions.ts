@@ -1,8 +1,22 @@
-import type { Question } from "./types";
+import type {
+  CodeQuestion,
+  MultipleChoiceQuestion,
+  Question,
+} from "./types";
+
+/** A question literal before its `topic` is attached (see TOPIC_BY_ID below). */
+type QuestionDraft =
+  | Omit<MultipleChoiceQuestion, "topic">
+  | Omit<CodeQuestion, "topic">;
 
 /**
  * The full question bank. Each attempt draws a balanced random subset
- * (see `selectQuestions`), so repeated practice stays fresh.
+ * (see `selectQuestions`), which also shuffles option order so the correct
+ * answer isn't positionally predictable.
+ *
+ * Distractors are written to be *plausible* — real misconceptions or
+ * defensible-but-worse choices — so questions test understanding rather than
+ * spotting the one serious option among jokes.
  *
  * Three flavors per category:
  *  - concept MCQs that reinforce the idea behind a topic
@@ -10,32 +24,34 @@ import type { Question } from "./types";
  *  - write-the-fix code questions (self-graded against a reference solution)
  */
 
-const react: Question[] = [
+const react: QuestionDraft[] = [
   {
     id: "react-keys",
     category: "react",
     type: "mcq",
-    difficulty: "easy",
-    prompt:
-      "Why does React ask for a stable `key` when you render a list with `.map()`?",
+    difficulty: "medium",
+    prompt: "What does a stable `key` actually do for a list rendered with `.map()`?",
     options: [
       {
         id: "a",
-        text: "It lets React match items between renders so it can reuse DOM and preserve component state correctly.",
+        text: "Gives each item a stable identity so React can match elements across renders and preserve their state.",
       },
-      { id: "b", text: "It improves SEO by labelling each list item." },
+      {
+        id: "b",
+        text: "Tells React it can skip re-rendering an item whose `key` didn't change, like built-in memoization.",
+      },
       {
         id: "c",
-        text: "It is required only for styling list items with CSS.",
+        text: "Only silences the console warning — it has no effect on what the DOM does at runtime.",
       },
       {
         id: "d",
-        text: "It tells React the order to run effects in.",
+        text: "Sets the DOM `id` of each rendered element so you can query it later.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Keys give each item a stable identity across renders. Without good keys, React falls back to matching by index, which can reuse the wrong DOM node or component state when the list reorders, inserts, or removes items.",
+      "Keys are about identity, not memoization or DOM ids. They let React tell which item is which between renders, so it reuses the right DOM nodes and keeps each item's component state attached to the correct data when the list changes order.",
   },
   {
     id: "react-derived-state",
@@ -43,98 +59,113 @@ const react: Question[] = [
     type: "mcq",
     difficulty: "medium",
     prompt:
-      "You have a `todos` array in state and want to show how many are completed. What is the idiomatic approach?",
+      "You have a `todos` array in state and need the count of completed ones. What's the best approach?",
     options: [
       {
         id: "a",
-        text: "Compute the count during render from `todos` — no extra state needed.",
+        text: "Compute it during render from `todos` (e.g. `todos.filter(t => t.done).length`).",
       },
       {
         id: "b",
-        text: "Store `completedCount` in its own `useState` and update it everywhere a todo changes.",
+        text: "Keep a `completedCount` state and update it in the same handler that toggles a todo.",
       },
       {
         id: "c",
-        text: "Put `completedCount` in a `useRef` and mutate it.",
+        text: "Recompute it in a `useEffect([todos])` and store the result back in state.",
       },
       {
         id: "d",
-        text: "Recalculate it inside a `useEffect` and write it back to state.",
+        text: "Store it in a `useRef` and mutate `ref.current` whenever a todo changes.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Anything you can calculate from existing state or props is derived state — compute it during render (e.g. `todos.filter(t => t.done).length`). Mirroring it into separate state invites bugs where the two fall out of sync.",
+      "The count is derived data — fully determined by `todos`. Computing it during render means it can never drift out of sync. Mirroring it into separate state or an effect adds a source of truth to keep aligned (and an extra render), which is where bugs creep in.",
   },
   {
     id: "react-setstate-same-value",
     category: "react",
     type: "mcq",
-    difficulty: "medium",
+    difficulty: "hard",
     prompt:
-      "What happens if you call a state setter with a value that is `Object.is`-equal to the current state?",
+      "You call a state setter with a value that is `Object.is`-equal to the current state. What can React do?",
     options: [
       {
         id: "a",
-        text: "React may bail out and skip re-rendering that component.",
+        text: "Bail out and skip re-rendering this component for that update.",
       },
-      { id: "b", text: "React always re-renders and re-runs every effect." },
-      { id: "c", text: "It throws an error about an unnecessary update." },
+      {
+        id: "b",
+        text: "Re-render once, then bail out of any further renders that value triggers.",
+      },
+      {
+        id: "c",
+        text: "Re-render the component but skip running its effects.",
+      },
       {
         id: "d",
-        text: "It schedules the update for the next animation frame.",
+        text: "Throw a development warning about an unnecessary state update.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "If the next state is identical (by `Object.is`) to the current state, React can bail out of re-rendering. This is also why mutating an object/array and passing the same reference can fail to trigger a render — the reference didn't change.",
+      "If the next state is identical by `Object.is`, React may bail out of the render entirely. This is also why mutating an object/array and passing the same reference can fail to update the UI — the reference didn't change, so React sees 'no change'.",
   },
   {
     id: "react-effect-purpose",
     category: "react",
     type: "mcq",
     difficulty: "medium",
-    prompt: "Which task is an appropriate use of `useEffect`?",
+    prompt: "Which of these is genuinely a job for `useEffect`?",
     options: [
       {
         id: "a",
-        text: "Subscribing to a browser event or external store and cleaning up on unmount.",
+        text: "Subscribing to a browser event or external store, and unsubscribing on cleanup.",
       },
       {
         id: "b",
-        text: "Transforming props into the value you render this frame.",
+        text: "Recomputing a filtered list to display whenever the source data changes.",
       },
       {
         id: "c",
-        text: "Computing a filtered list to display from existing state.",
+        text: "Keeping a derived total in state, updated whenever its inputs change.",
       },
       {
         id: "d",
-        text: "Updating one piece of state whenever another piece of state changes.",
+        text: "Resetting a form's local state when its `key`-less parent re-renders.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Effects are for synchronizing with systems outside React (subscriptions, timers, manual DOM, network). Data you can derive during render shouldn't live in an effect — that just adds an extra render and a chance to desync.",
+      "Effects are for synchronizing with systems outside React — subscriptions, timers, manual DOM, the network. Filtering and totals are derived data you should compute during render; storing them via effects just adds a render and a chance to desync.",
   },
   {
     id: "react-controlled-input",
     category: "react",
     type: "mcq",
-    difficulty: "easy",
-    prompt: "What makes an `<input>` a *controlled* component in React?",
+    difficulty: "medium",
+    prompt: "Which describes a *controlled* `<input>`?",
     options: [
       {
         id: "a",
-        text: "Its `value` is driven by state and updated via `onChange`.",
+        text: "Its displayed `value` comes from state and every change flows through `onChange`.",
       },
-      { id: "b", text: "It has the `controlled` attribute set." },
-      { id: "c", text: "It uses a `ref` to read the DOM value on submit." },
-      { id: "d", text: "It is wrapped in a `<form>` element." },
+      {
+        id: "b",
+        text: "It uses `defaultValue` for the initial text and you read the current value from a ref.",
+      },
+      {
+        id: "c",
+        text: "It keeps its value in the DOM and syncs to React state only on blur.",
+      },
+      {
+        id: "d",
+        text: "It has an `onChange` handler but lets the browser manage the displayed value.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "A controlled input's displayed value comes from React state (`value={x}`) and changes flow through `onChange`. An uncontrolled input keeps its own DOM state and you read it via a ref (or `defaultValue`).",
+      "Controlled means React state is the single source of truth: `value={state}` plus `onChange`. Option B describes an *uncontrolled* input. C and D are hybrids that drift, because the DOM and React can disagree about the current value.",
   },
   {
     id: "react-compiler-memo",
@@ -142,72 +173,85 @@ const react: Question[] = [
     type: "mcq",
     difficulty: "medium",
     prompt:
-      "This project has the React Compiler enabled. What does that change about manual `useMemo`/`useCallback`?",
+      "This project has the React Compiler enabled. What's the most accurate effect on `useMemo`/`useCallback`?",
     options: [
       {
         id: "a",
-        text: "The compiler auto-memoizes components and values, so most manual memoization becomes unnecessary.",
+        text: "It auto-memoizes components and values, so most manual `useMemo`/`useCallback` becomes unnecessary.",
       },
       {
         id: "b",
-        text: "You must wrap every component in `React.memo` for it to work.",
+        text: "It only helps if you also wrap each component in `React.memo`; on its own it does nothing.",
       },
       {
         id: "c",
-        text: "`useMemo` and `useCallback` are removed from the API entirely.",
+        text: "It memoizes values, but you still need `useCallback` on every function passed to a child.",
       },
       {
         id: "d",
-        text: "It only memoizes server components, never client ones.",
+        text: "It compiles `useState` into signals, so updating state no longer triggers re-renders.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "The React Compiler analyzes your components and inserts memoization automatically, so the reflex to scatter `useMemo`/`useCallback` everywhere mostly goes away. You still write idiomatic React; the compiler handles re-render optimization.",
+      "The compiler analyzes your components and inserts memoization for you, so the habit of scattering `useMemo`/`useCallback` mostly goes away. It doesn't require `React.memo`, and it doesn't change React's fundamental state-and-render model.",
   },
   {
-    id: "react-render-triggers",
+    id: "react-ref-no-rerender",
     category: "react",
     type: "mcq",
-    difficulty: "easy",
-    prompt: "Which of these does NOT, by itself, cause a component to re-render?",
+    difficulty: "medium",
+    prompt:
+      "Which change will NOT, on its own, schedule a re-render of the component?",
     options: [
-      { id: "a", text: "Mutating a module-level variable it reads from." },
-      { id: "b", text: "Its own state changing via a setter." },
-      { id: "c", text: "Its parent re-rendering." },
-      { id: "d", text: "A subscribed context value changing." },
+      {
+        id: "a",
+        text: "Mutating an object held in a ref, e.g. `ref.current.x = 1`.",
+      },
+      { id: "b", text: "Calling a `useState` setter with a new value." },
+      { id: "c", text: "A subscribed `useContext` value changing." },
+      { id: "d", text: "Receiving a new prop value from the parent." },
     ],
     correctOptionId: "a",
     explanation:
-      "React re-renders in response to state, props/parent renders, and context changes. Mutating an external variable doesn't notify React, so the UI can silently go stale — that data belongs in state or an external store with a subscription.",
+      "Refs are an escape hatch from the render cycle: writing to `ref.current` never triggers a render. State updates, context changes, and new props all do. That's exactly why a ref is the right place for a `setInterval` id or other mutable value you don't render.",
   },
   {
     id: "react-bug-onclick-call",
     category: "react",
     type: "mcq",
-    difficulty: "easy",
-    prompt: "What's wrong with this button?",
+    difficulty: "medium",
+    prompt: "What's the bug here?",
     code: `<button onClick={handleDelete()}>Delete</button>`,
     codeLang: "tsx",
     options: [
       {
         id: "a",
-        text: "`handleDelete()` runs during render; pass the function itself: `onClick={handleDelete}`.",
+        text: "`handleDelete()` is called during render; pass the function: `onClick={handleDelete}` (or `() => handleDelete()`).",
       },
-      { id: "b", text: "`onClick` should be `onclick` (lowercase)." },
-      { id: "c", text: "Buttons can't have click handlers in React." },
-      { id: "d", text: "Nothing — this is correct." },
+      {
+        id: "b",
+        text: "`handleDelete` must be wrapped in `useCallback`, or it's recreated every render and the click misfires.",
+      },
+      {
+        id: "c",
+        text: "The button needs `type=\"button\"`, otherwise the handler never runs.",
+      },
+      {
+        id: "d",
+        text: "Inline handlers in JSX must be arrow functions; a named reference won't bind correctly.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "Writing `onClick={handleDelete()}` calls the function while rendering and assigns its return value as the handler. Pass a reference (`onClick={handleDelete}`) or a wrapper (`onClick={() => handleDelete(id)}`).",
+      "`onClick={handleDelete()}` invokes the function while rendering and assigns its return value as the handler. Pass a reference (`onClick={handleDelete}`) or wrap it (`onClick={() => handleDelete(id)}`). `useCallback` and `type` are unrelated to this bug.",
   },
   {
     id: "react-bug-conditional-hook",
     category: "react",
     type: "mcq",
     difficulty: "medium",
-    prompt: "Why does this component break the Rules of Hooks?",
+    prompt: "Why does this component violate the Rules of Hooks?",
     code: `function Profile({ userId }) {
   if (!userId) return <p>Sign in</p>;
   const [name, setName] = useState("");
@@ -217,24 +261,24 @@ const react: Question[] = [
     options: [
       {
         id: "a",
-        text: "`useState` is called conditionally, so the hook order can change between renders.",
+        text: "`useState` runs conditionally, so the number/order of hooks can change between renders.",
       },
       {
         id: "b",
-        text: "You can't return JSX before declaring state.",
+        text: "A component may not `return` before all of its hooks have been declared, in any case.",
       },
       {
         id: "c",
-        text: "`useState` must be given a typed initial value.",
+        text: "`useState` must be given an initial value whose type matches the `userId` prop.",
       },
       {
         id: "d",
-        text: "Components can't take a `userId` prop.",
+        text: "Early returns must render `null`, never JSX, or React loses track of state.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Hooks must run in the same order on every render. The early `return` means `useState` is sometimes skipped, breaking React's index-based hook tracking. Move all hooks above any conditional returns.",
+      "React tracks hooks by call order, assuming the same hooks run every render. The early `return` skips `useState` when `userId` is falsy, shifting the order. Move hooks above any conditional return — the early return itself is fine once hooks come first.",
   },
   {
     id: "react-bug-index-key",
@@ -242,7 +286,7 @@ const react: Question[] = [
     type: "mcq",
     difficulty: "hard",
     prompt:
-      "This list lets users reorder and delete rows. Why can using the array index as `key` cause visible bugs?",
+      "Users can reorder and delete these rows, each of which has its own input. Why can an index `key` cause visible bugs?",
     code: `{rows.map((row, i) => (
   <EditableRow key={i} row={row} />
 ))}`,
@@ -250,31 +294,31 @@ const react: Question[] = [
     options: [
       {
         id: "a",
-        text: "When the list reorders, indexes stay 1,2,3… so React reuses the wrong component instances and their internal state (e.g. input text) sticks to the wrong row.",
+        text: "Indexes track position, not identity — after a reorder/delete, React reuses the wrong instances and their local state (e.g. input text) sticks to the wrong row.",
       },
       {
         id: "b",
-        text: "Index keys make the list render twice as slowly.",
+        text: "Index keys force the entire list to re-render on every change, which corrupts input state.",
       },
       {
         id: "c",
-        text: "React forbids numeric keys.",
+        text: "React coerces numeric keys to strings, and the mismatch drops the `row` prop updates.",
       },
       {
         id: "d",
-        text: "Index keys disable the `row` prop from updating.",
+        text: "`key` can't be derived from the second `.map()` argument, so React ignores it.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Index keys describe position, not identity. After a reorder or deletion, item identities shift but the indexes don't, so React keeps the old component (and its local state) in place. Use a stable id from the data (`key={row.id}`).",
+      "When the list reorders or an item is removed, the indexes stay 0,1,2… but the data behind them shifts. React matches by key, so it keeps the old component (and its uncontrolled input state) in the old position. Use a stable id from the data: `key={row.id}`.",
   },
   {
     id: "react-bug-mutate-state",
     category: "react",
     type: "mcq",
     difficulty: "medium",
-    prompt: "Why doesn't the list update on screen after clicking Add?",
+    prompt: "Why doesn't the list update on screen after Add is clicked?",
     code: `function handleAdd(item) {
   items.push(item);
   setItems(items);
@@ -283,56 +327,56 @@ const react: Question[] = [
     options: [
       {
         id: "a",
-        text: "`items` is mutated in place, so the reference is unchanged and React bails out of re-rendering. Create a new array: `setItems([...items, item])`.",
+        text: "`items` is mutated in place, so the reference is unchanged and React bails on the render. Use `setItems([...items, item])`.",
       },
       {
         id: "b",
-        text: "`push` returns the new length, which confuses the setter.",
+        text: "`push` returns the new length, so `setItems` ends up storing a number, not the array.",
       },
       {
         id: "c",
-        text: "You must call `setItems` twice for arrays.",
+        text: "State updates are asynchronous, so you must `await setItems(...)` before the UI reflects it.",
       },
       {
         id: "d",
-        text: "Arrays can't be stored in `useState`.",
+        text: "Array state requires the functional form `setItems(prev => prev)` to register a change.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "React compares the next state to the previous by reference. `push` mutates the same array, so the reference is identical and the render is skipped. Always produce a new value: `setItems([...items, item])`.",
+      "React compares next vs. previous state by reference. `push` mutates the same array, so the reference matches and the render is skipped. The fix is a new array: `setItems([...items, item])`. (`setItems` is given the array, not `push`'s return value.)",
   },
   {
     id: "react-bug-effect-deps",
     category: "react",
     type: "mcq",
     difficulty: "hard",
-    prompt: "Why does this effect run on every render?",
+    prompt: "Why does this effect run on every render (and loop)?",
     code: `useEffect(() => {
   fetchUser(userId).then(setUser);
-}); // <- no dependency array`,
+}); // no dependency array`,
     codeLang: "tsx",
     options: [
       {
         id: "a",
-        text: "With no dependency array, the effect runs after every render — and `setUser` triggers another render, creating a loop.",
+        text: "With no dependency array it runs after every render; `setUser` causes a render, which re-runs it — a loop. Add `[userId]`.",
       },
       {
         id: "b",
-        text: "`fetchUser` must be wrapped in `useCallback` or it won't run.",
+        text: "`setUser` is a new function each render, so the effect sees a changed dependency and re-fires.",
       },
       {
         id: "c",
-        text: "`.then` is not allowed inside effects.",
+        text: "The effect callback must be `async` to await `fetchUser`; without that React retries it every frame.",
       },
       {
         id: "d",
-        text: "Effects only run once regardless of the dependency array.",
+        text: "The dependency array is missing `user`, so React can't tell the fetch already completed.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Omitting the dependency array means the effect fires after every render. Since it sets state, that schedules another render, which re-runs the effect — an infinite loop. Add `[userId]` so it only refetches when the id changes.",
+      "No dependency array means 'run after every render'. Since the effect sets state, it schedules another render, which runs the effect again. Add `[userId]` so it only refetches when the id changes. (`setUser`'s identity is stable, and effect callbacks must not be `async`.)",
   },
   {
     id: "react-fix-infinite-effect",
@@ -366,7 +410,7 @@ const react: Question[] = [
     type: "code",
     difficulty: "medium",
     prompt:
-      "This interval should increment once per second but gets stuck at 1. Fix it (the effect has `[]` deps and should keep them).",
+      "This interval should increment once per second but gets stuck at 1. Fix it (keep the `[]` deps).",
     code: `useEffect(() => {
   const id = setInterval(() => {
     setCount(count + 1); // always sees count = 0
@@ -410,8 +454,7 @@ const react: Question[] = [
     category: "react",
     type: "code",
     difficulty: "easy",
-    prompt:
-      "Add a correct `key` to this list. Each `user` has a unique `id`.",
+    prompt: "Add a correct `key` to this list. Each `user` has a unique `id`.",
     code: `{users.map((user) => (
   <UserRow user={user} />
 ))}`,
@@ -427,121 +470,142 @@ const react: Question[] = [
   },
 ];
 
-const uiux: Question[] = [
+const uiux: QuestionDraft[] = [
   {
     id: "uiux-hierarchy",
     category: "uiux",
     type: "mcq",
-    difficulty: "easy",
+    difficulty: "medium",
     prompt:
-      "A screen has a title, body text, and a primary action that all look the same weight. Which change most improves visual hierarchy?",
+      "A screen's title, body text, and primary button all read at the same visual weight. Which change best establishes hierarchy?",
     options: [
       {
         id: "a",
-        text: "Differentiate them with size, weight, color, and spacing so the eye knows what's most important.",
+        text: "Differentiate them with size, weight, color, and spacing so importance is obvious at a glance.",
       },
-      { id: "b", text: "Center every element on the page." },
-      { id: "c", text: "Add a drop shadow to all three." },
-      { id: "d", text: "Make all the text uppercase." },
+      {
+        id: "b",
+        text: "Add equal, generous whitespace around all three so the section feels lighter.",
+      },
+      {
+        id: "c",
+        text: "Apply the same accent color to all three to visually tie them together.",
+      },
+      {
+        id: "d",
+        text: "Increase every text size proportionally to improve overall readability.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "Hierarchy is created by contrast — differences in size, weight, color, and whitespace guide attention in order of importance. When everything looks equally prominent, nothing stands out and users don't know where to look.",
+      "Hierarchy comes from *contrast* — differences that rank elements. Uniform spacing, a shared color, or scaling everything up keeps them equal, so nothing leads. Vary size/weight/color/space to signal what matters most.",
   },
   {
     id: "uiux-feedback",
     category: "uiux",
     type: "mcq",
-    difficulty: "easy",
+    difficulty: "medium",
     prompt:
-      "A 'Save' button triggers a 2-second network request. What's the best feedback?",
+      "A 'Save' button triggers a ~2s network request. What's the best default feedback?",
     options: [
       {
         id: "a",
-        text: "Immediately show a loading/disabled state on the button, then confirm success or show an error.",
+        text: "Immediately put the button in a loading/disabled state, then confirm success or show an error.",
       },
       {
         id: "b",
-        text: "Do nothing until the request finishes, then reload the page.",
+        text: "Optimistically show success right away and quietly roll back if the request fails.",
       },
       {
         id: "c",
-        text: "Show an alert dialog saying 'Please wait'.",
+        text: "Leave the button unchanged and show a toast only once the request finishes.",
       },
       {
         id: "d",
-        text: "Disable the whole screen with no indicator.",
+        text: "Disable the whole screen with a full-page blocking spinner until it's done.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Every action needs prompt, visible feedback. A loading state on the control reassures users the click registered and prevents double-submits, then a clear success/error result closes the loop.",
+      "The click needs immediate, local feedback: a loading state confirms it registered and prevents double-submits, then a clear result closes the loop. Optimistic UI suits cheap, low-risk actions; a silent button or a full-page block are too little or too much.",
   },
   {
     id: "uiux-validation-timing",
     category: "uiux",
     type: "mcq",
     difficulty: "medium",
-    prompt: "When should a form field show a validation error?",
+    prompt: "When should a form field surface its validation error?",
     options: [
       {
         id: "a",
-        text: "After the user finishes the field (on blur) or on submit — not aggressively on every keystroke.",
+        text: "On blur or submit — then, once a field is in error, re-validate live as the user fixes it.",
       },
       {
         id: "b",
-        text: "On every keystroke from the very first character typed.",
+        text: "On every keystroke from the first character, so feedback is always instant.",
       },
       {
         id: "c",
-        text: "Only after the form is submitted to the server.",
+        text: "Only on submit; inline errors mid-form are distracting and should be avoided.",
       },
       {
         id: "d",
-        text: "Never — let the server reject it.",
+        text: "On blur only, and never re-check until the next submit.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Validating on blur or submit respects the user's flow; flagging an email as invalid while they're still typing the first letters is noisy and stressful. Once a field has an error, switching to live validation as they fix it is a nice touch.",
+      "Flagging an error before the user finishes a field (e.g. an 'invalid email' while they type the first letters) is noisy and stressful. Validate on blur/submit, then switch to live validation for that field so they can see when it's fixed.",
   },
   {
     id: "uiux-error-message",
     category: "uiux",
     type: "mcq",
-    difficulty: "easy",
-    prompt: "Which error message is best?",
+    difficulty: "medium",
+    prompt: "A card payment fails. Which message is best?",
     options: [
       {
         id: "a",
         text: "\"That card was declined. Check the number and expiry, or try another card.\"",
       },
-      { id: "b", text: '"Error 0x80004005."' },
-      { id: "c", text: '"Something went wrong."' },
-      { id: "d", text: '"Invalid input."' },
+      { id: "b", text: '"Payment failed. Please try again later."' },
+      { id: "c", text: '"We couldn\'t process your payment (error 4051)."' },
+      {
+        id: "d",
+        text: '"Your card was declined by the issuing bank for security reasons."',
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "Good error messages say what happened, in plain language, and what the user can do next. Generic or codey messages leave people stuck with no path forward.",
+      "Good errors say what happened in plain language and what to do next. 'Try again later' isn't actionable, an error code is meaningful only to support, and a vague 'security reasons' gives the user no path forward.",
   },
   {
     id: "uiux-affordance",
     category: "uiux",
     type: "mcq",
-    difficulty: "easy",
-    prompt: "What is an 'affordance' in UI design?",
+    difficulty: "medium",
+    prompt: "What is an 'affordance' in interface design?",
     options: [
       {
         id: "a",
-        text: "A visual cue that signals how an element can be used (a button looks pressable, a link looks clickable).",
+        text: "A perceived visual cue for how an element can be used — a button looks pressable, a field looks editable.",
       },
-      { id: "b", text: "The amount of whitespace around an element." },
-      { id: "c", text: "The time it takes a screen to load." },
-      { id: "d", text: "A premium feature behind a paywall." },
+      {
+        id: "b",
+        text: "The negative space that separates one element from its neighbours.",
+      },
+      {
+        id: "c",
+        text: "A design token that maps a component to its accessible ARIA role.",
+      },
+      {
+        id: "d",
+        text: "The placeholder UI shown while an interactive element is loading.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "An affordance is a perceived signal of how something works. Buttons that look raised/clickable and links that look tappable let users act without instructions. Flat, ambiguous controls erode this.",
+      "An affordance is a signal of possible action — raised buttons, underlined links, draggable handles. Flat, ambiguous controls weaken affordance and force users to guess what's interactive. The other options describe whitespace, tokens, and loading states.",
   },
   {
     id: "uiux-jakobs-law",
@@ -549,19 +613,28 @@ const uiux: Question[] = [
     type: "mcq",
     difficulty: "medium",
     prompt:
-      "Your team wants to put the site logo in the bottom-right and make it scroll the page to the top. What's the UX concern?",
+      "A stakeholder wants the site logo moved to the bottom-right and repurposed as a 'scroll to top' control. What's the main usability concern?",
     options: [
       {
         id: "a",
-        text: "It violates established conventions — users expect a top-left logo to link home (Jakob's Law).",
+        text: "It breaks a strong convention — users expect a top-left logo that links home (Jakob's Law).",
       },
-      { id: "b", text: "Logos can't be interactive." },
-      { id: "c", text: "Bottom-right positions are impossible in CSS." },
-      { id: "d", text: "There's no concern; novelty always wins." },
+      {
+        id: "b",
+        text: "Repurposing the logo hurts SEO because crawlers expect it in the header.",
+      },
+      {
+        id: "c",
+        text: "Fixed bottom-right elements always overlap the mobile browser's UI chrome.",
+      },
+      {
+        id: "d",
+        text: "Logos shouldn't be interactive at all, since that confuses brand recognition.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "Jakob's Law: users spend most of their time on other sites and expect yours to work the same way. A top-left logo that links home is a strong convention; breaking it for novelty adds friction with little benefit.",
+      "Jakob's Law: people expect your site to behave like the many others they use. A top-left logo linking home is deeply ingrained; relocating and repurposing it adds friction for little gain. (Logos can absolutely be links, and SEO isn't the core UX issue.)",
   },
   {
     id: "uiux-fitts",
@@ -569,19 +642,28 @@ const uiux: Question[] = [
     type: "mcq",
     difficulty: "medium",
     prompt:
-      "On a mobile interface, why should primary tap targets be reasonably large (~44px) and well-spaced?",
+      "Why should primary tap targets on mobile be reasonably large (~44px) and well-spaced?",
     options: [
       {
         id: "a",
-        text: "Bigger, well-separated targets are faster and more reliable to hit, reducing mis-taps (Fitts's Law).",
+        text: "Bigger, well-separated targets are faster to acquire and reduce mis-taps (Fitts's Law).",
       },
-      { id: "b", text: "Large targets always look more modern." },
-      { id: "c", text: "It's required for the page to be responsive." },
-      { id: "d", text: "Small targets break JavaScript event handling." },
+      {
+        id: "b",
+        text: "Touch screens physically cannot register taps on elements smaller than ~44px.",
+      },
+      {
+        id: "c",
+        text: "Larger targets are needed for their text labels to meet contrast requirements.",
+      },
+      {
+        id: "d",
+        text: "Bigger tap targets reduce cumulative layout shift while the page loads.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "Fitts's Law: time to acquire a target depends on its size and distance. Fingers are imprecise, so tiny or crowded targets cause errors. ~44px with adequate spacing is a common minimum for touch.",
+      "Fitts's Law: acquisition time depends on a target's size and distance. Fingers are imprecise, so small or crowded targets cause errors. Screens can register taps smaller than 44px — it's just error-prone — and contrast/layout-shift are separate concerns.",
   },
   {
     id: "uiux-progressive-disclosure",
@@ -589,19 +671,28 @@ const uiux: Question[] = [
     type: "mcq",
     difficulty: "medium",
     prompt:
-      "A settings page has 40 rarely-used options. What technique keeps it approachable?",
+      "A settings page has 40 options, most of them rarely used. What technique best keeps it approachable?",
     options: [
       {
         id: "a",
-        text: "Progressive disclosure — show common options first, tuck advanced ones behind 'Advanced' or sections.",
+        text: "Progressive disclosure — surface common options, tuck the rest behind 'Advanced' or grouped sections.",
       },
-      { id: "b", text: "Put all 40 in one long flat list to be transparent." },
-      { id: "c", text: "Randomize their order each visit." },
-      { id: "d", text: "Hide all of them and require support to change settings." },
+      {
+        id: "b",
+        text: "Paginate the options across several numbered pages.",
+      },
+      {
+        id: "c",
+        text: "Add a search box and let users find the specific setting they need.",
+      },
+      {
+        id: "d",
+        text: "List all 40 alphabetically so their location is always predictable.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "Progressive disclosure reduces cognitive load by surfacing what most people need and deferring the rest. It keeps the default view simple while still making advanced controls reachable.",
+      "Progressive disclosure lowers cognitive load by showing what most people need and deferring the rest while keeping it reachable. Search helps when you know the name; pagination and a flat A–Z list still confront everyone with the full complexity.",
   },
   {
     id: "uiux-recognition-recall",
@@ -609,48 +700,56 @@ const uiux: Question[] = [
     type: "mcq",
     difficulty: "medium",
     prompt:
-      "Why is a visible list of recent files usually better than asking users to type the exact filename from memory?",
+      "Why is a visible list of recent files usually better than asking users to type the exact filename?",
     options: [
       {
         id: "a",
-        text: "Recognition is easier than recall — showing options offloads memory to the interface.",
+        text: "Recognition is easier than recall — showing choices offloads memory onto the interface.",
       },
-      { id: "b", text: "Typing is slower on every keyboard." },
-      { id: "c", text: "Recent-file lists improve security." },
-      { id: "d", text: "It reduces the number of HTTP requests." },
+      {
+        id: "b",
+        text: "Because rendering a list is cheaper than validating free-text input.",
+      },
+      {
+        id: "c",
+        text: "Because a recent-files list lets the app cache those files for faster opening.",
+      },
+      {
+        id: "d",
+        text: "Because free-text filename inputs can't be reliably validated.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "A core usability heuristic: prefer recognition over recall. Letting users pick from visible choices is far less effortful and error-prone than making them remember and reproduce information.",
+      "It's a core usability heuristic: prefer recognition over recall. Letting people pick from visible options is far less effortful and error-prone than making them remember and reproduce exact text. The other options are technical side-effects, not the UX reason.",
   },
   {
     id: "uiux-destructive-confirm",
     category: "uiux",
     type: "mcq",
-    difficulty: "easy",
-    prompt:
-      "What's a good pattern for a 'Delete account' action that can't be undone?",
+    difficulty: "medium",
+    prompt: "What's the best pattern for a 'Delete account' action that can't be undone?",
     options: [
       {
         id: "a",
-        text: "Require explicit confirmation (and ideally an undo window or typed confirmation) before destroying data.",
+        text: "Add friction proportional to the stakes: an explicit confirmation (e.g. type the name) and/or an undo window.",
       },
       {
         id: "b",
-        text: "Delete instantly on the first click for speed.",
+        text: "Position the button far from other controls so it's unlikely to be clicked by accident.",
       },
       {
         id: "c",
-        text: "Hide the button so nobody clicks it by accident.",
+        text: "Style it faint and low-contrast so it doesn't draw clicks.",
       },
       {
         id: "d",
-        text: "Show a 10-second spinner before deleting.",
+        text: "Require a double-click on the button to confirm the user means it.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Destructive, irreversible actions need friction proportional to their consequences: a confirmation step, a typed confirmation for high stakes, or an undo grace period. This prevents costly accidental clicks.",
+      "Irreversible actions deserve deliberate confirmation matched to their cost — a confirm step, typed confirmation, or undo grace period. Hiding the button with distance or low contrast hurts discoverability and accessibility, and double-click isn't a recognized confirmation pattern.",
   },
   {
     id: "uiux-perceived-performance",
@@ -658,61 +757,85 @@ const uiux: Question[] = [
     type: "mcq",
     difficulty: "medium",
     prompt:
-      "A dashboard takes ~1.5s to load data. Which approach best improves *perceived* performance?",
+      "A dashboard takes ~1.5s to load its data. Which best improves *perceived* performance?",
     options: [
       {
         id: "a",
-        text: "Show skeleton placeholders that mirror the layout while data loads.",
+        text: "Show skeleton placeholders that mirror the final layout while data loads.",
       },
       {
         id: "b",
-        text: "Show a blank white screen until everything is ready.",
+        text: "Render the page immediately with zeros/empty values, then swap in real data.",
       },
-      { id: "c", text: "Block interaction with a modal spinner." },
-      { id: "d", text: "Load nothing until the user clicks 'Refresh'." },
+      {
+        id: "c",
+        text: "Cover the page with a centered spinner over a dimmed backdrop until it's ready.",
+      },
+      {
+        id: "d",
+        text: "Show a progress bar that animates to ~90% regardless of actual progress.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "Skeletons set expectations about what's coming and make waits feel shorter and more structured than a blank screen or a lone spinner. Perceived performance is often as important as raw speed.",
+      "Skeletons set expectations about what's coming and avoid layout shift, making the wait feel shorter and more structured. Flashing zeros causes a jarring swap, a blocking spinner stalls everything, and a fake progress bar erodes trust when it stalls at 90%.",
   },
   {
     id: "uiux-color-alone",
     category: "uiux",
     type: "mcq",
-    difficulty: "medium",
+    difficulty: "hard",
     prompt:
-      "A form marks invalid fields by turning their border red and nothing else. What's the problem?",
+      "A form marks invalid fields only by turning the border red. What's the most important fix?",
     options: [
       {
         id: "a",
-        text: "Color alone isn't enough — add an icon and/or text so colorblind and low-vision users can perceive the error.",
+        text: "Add a non-color cue — an icon and/or a short text message — so the error is perceivable without seeing color.",
       },
-      { id: "b", text: "Red borders are too expensive to render." },
-      { id: "c", text: "Borders can't convey state in CSS." },
-      { id: "d", text: "There's no problem; red universally means error." },
+      {
+        id: "b",
+        text: "Darken the red so the border meets a 3:1 contrast ratio against the background.",
+      },
+      {
+        id: "c",
+        text: "Add `aria-invalid` to the field so screen readers announce the error.",
+      },
+      {
+        id: "d",
+        text: "Briefly animate the border so the change catches the user's eye.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "Roughly 1 in 12 men has some color vision deficiency. Never rely on color as the only signal — pair it with text, an icon, or a pattern so the meaning survives without color perception.",
+      "Never rely on color alone — colorblind and low-vision users may not perceive the red. Pair it with an icon and/or text. `aria-invalid` helps screen readers (do it too!) but doesn't help a sighted colorblind user, and better contrast or animation still leaves color as the only signal.",
   },
   {
     id: "uiux-empty-state",
     category: "uiux",
     type: "mcq",
     difficulty: "medium",
-    prompt: "What makes a strong empty state (e.g. a brand-new, empty inbox)?",
+    prompt: "What makes a strong empty state for a brand-new, empty inbox?",
     options: [
       {
         id: "a",
-        text: "Explain what goes here and offer a clear next action to fill it.",
+        text: "Explain what will appear here and offer a clear primary action to get started.",
       },
-      { id: "b", text: "Leave the area blank so it looks clean." },
-      { id: "c", text: "Show a generic 'No data' string only." },
-      { id: "d", text: "Display a 404 page." },
+      {
+        id: "b",
+        text: "Show a large friendly illustration so the screen doesn't look broken.",
+      },
+      {
+        id: "c",
+        text: "Render the column headers and an empty table so the structure is visible.",
+      },
+      {
+        id: "d",
+        text: "Auto-populate sample data so users can see what a full inbox looks like.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "Empty states are an onboarding opportunity. The best ones orient the user (what belongs here) and provide a primary action to get started, instead of a dead-end 'nothing here' message.",
+      "Empty states are an onboarding moment: orient the user and give them a next step. An illustration alone is decoration, bare headers explain nothing, and fake sample data can be mistaken for real content. Guidance + a CTA does the real work.",
   },
   {
     id: "uiux-bug-disabled-submit",
@@ -720,99 +843,114 @@ const uiux: Question[] = [
     type: "mcq",
     difficulty: "medium",
     prompt:
-      "A signup form keeps the Submit button disabled until the form is valid, but gives no other hints. Why can this frustrate users?",
+      "A signup form keeps Submit disabled until everything is valid, with no other hints. Why is this a problem?",
     options: [
       {
         id: "a",
-        text: "Users can't tell what's missing or why they can't proceed — show validation hints and/or enable submit and surface errors on click.",
+        text: "Users can't tell what's blocking them — show inline guidance on what's required, or let them submit and reveal the errors.",
       },
       {
         id: "b",
-        text: "Disabled buttons slow down the page.",
+        text: "Disabled buttons can't receive focus, so screen-reader users won't know the form exists at all.",
       },
       {
         id: "c",
-        text: "Disabling a button is invalid HTML.",
+        text: "Browsers clear disabled buttons' forms on validation, losing the user's input.",
       },
       {
         id: "d",
-        text: "It's fine; users enjoy figuring it out.",
+        text: "It's fine as long as every required field is marked with a red asterisk.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "A silently disabled submit button is a dead end — the user doesn't know which field is blocking them. Either show clear inline guidance about what's required, or let them submit and reveal the specific errors.",
+      "A silently disabled submit is a dead end: the user doesn't know which field is holding them up. Show what's required inline, or allow submit and surface specific errors. (The form's fields are still perceivable; browsers don't wipe input like that.)",
   },
 ];
 
-const a11y: Question[] = [
+const a11y: QuestionDraft[] = [
   {
     id: "a11y-semantic-button",
     category: "a11y",
     type: "mcq",
-    difficulty: "easy",
+    difficulty: "medium",
     prompt:
-      "Why prefer a real `<button>` over a `<div onClick={...}>` for a clickable control?",
+      "Why prefer a native `<button>` over a `<div onClick={...}>` for a clickable control?",
     options: [
       {
         id: "a",
-        text: "`<button>` is focusable, keyboard-operable (Enter/Space), and announced as a button to assistive tech — for free.",
+        text: "`<button>` is focusable, operable with Enter/Space, and announced as a button — all for free.",
       },
       {
         id: "b",
-        text: "`<div>` elements can't have click handlers.",
+        text: "A `<div role=\"button\" tabindex=\"0\">` is fully equivalent, so it's really just personal preference.",
       },
       {
         id: "c",
-        text: "`<button>` renders faster than `<div>`.",
+        text: "Screen readers ignore `<div>` elements entirely, even ones containing text.",
       },
       {
         id: "d",
-        text: "There's no difference; it's purely stylistic.",
+        text: "`onClick` on a `<div>` doesn't fire on touch devices, only on desktop.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Native `<button>` comes with keyboard focus, Enter/Space activation, and the correct role/announcement. A clickable `<div>` is invisible to keyboard and screen-reader users unless you re-add `role`, `tabindex`, and key handlers manually.",
+      "A real `<button>` gives you focus, keyboard activation, and the button role with no extra work. A `<div role=\"button\" tabindex=\"0\">` still needs manual Enter/Space handling to match — close, but not free. Screen readers do read `<div>` text, and `onClick` works on touch.",
   },
   {
     id: "a11y-alt-decorative",
     category: "a11y",
     type: "mcq",
-    difficulty: "medium",
+    difficulty: "hard",
     prompt:
-      "An image is purely decorative (a background flourish next to a heading). What's the correct `alt`?",
+      "An image is purely decorative (a flourish beside a heading). What's the correct handling?",
     options: [
+      { id: "a", text: 'Give it an empty alt (`alt=""`) so screen readers skip it.' },
       {
-        id: "a",
-        text: 'An empty alt (`alt=""`) so screen readers skip it.',
+        id: "b",
+        text: "Omit the `alt` attribute entirely so there's no text to announce.",
       },
-      { id: "b", text: 'A description like `alt="decorative swirl"`.' },
-      { id: "c", text: "Omit the `alt` attribute entirely." },
-      { id: "d", text: 'Use `alt="image"`.' },
+      {
+        id: "c",
+        text: 'Use `role="presentation"`, which also requires a short descriptive `alt`.',
+      },
+      {
+        id: "d",
+        text: 'Set `aria-hidden="true"` and a brief `alt` like "decorative swirl".',
+      },
     ],
     correctOptionId: "a",
     explanation:
-      'Decorative images should have `alt=""` (empty, not missing) so assistive tech ignores them as noise. Informative images need descriptive alt; omitting `alt` entirely makes some screen readers announce the file name.',
+      'Decorative images take `alt=""` (present but empty) so assistive tech ignores them. Omitting `alt` makes some screen readers read the file name. The other options mix contradictory attributes — `role="presentation"` doesn\'t need descriptive alt, and you don\'t pair `aria-hidden` with alt text.',
   },
   {
     id: "a11y-label-association",
     category: "a11y",
     type: "mcq",
-    difficulty: "easy",
+    difficulty: "medium",
     prompt: "What's the most robust way to label a text input?",
     options: [
       {
         id: "a",
-        text: "A `<label>` associated via `htmlFor`/`id` (or wrapping the input).",
+        text: "A visible `<label>` associated via `htmlFor`/`id` (or wrapping the input).",
       },
-      { id: "b", text: "A `placeholder` that disappears on focus." },
-      { id: "c", text: "Nearby text in a `<div>` with no association." },
-      { id: "d", text: "A `title` attribute only." },
+      {
+        id: "b",
+        text: "An `aria-label` on the input — a visible label is optional once that's present.",
+      },
+      {
+        id: "c",
+        text: "A `placeholder` plus a `title` attribute as a tooltip.",
+      },
+      {
+        id: "d",
+        text: "A nearby `<span>` referenced with `aria-describedby`.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "A programmatically associated `<label>` is announced by screen readers, expands the click target, and persists while typing. Placeholders aren't labels — they vanish on input and often fail contrast.",
+      "A real associated `<label>` is announced, stays visible while typing, and extends the click target. `aria-label` works for screen readers but leaves no visible label and is easy to let rot. A placeholder isn't a label, and `aria-describedby` provides a description, not the name.",
   },
   {
     id: "a11y-contrast",
@@ -820,16 +958,16 @@ const a11y: Question[] = [
     type: "mcq",
     difficulty: "medium",
     prompt:
-      "What's the WCAG AA minimum contrast ratio for normal-size body text against its background?",
+      "What's the WCAG 2.x AA minimum contrast ratio for normal-size body text?",
     options: [
       { id: "a", text: "4.5:1" },
-      { id: "b", text: "1.5:1" },
-      { id: "c", text: "21:1" },
+      { id: "b", text: "3:1" },
+      { id: "c", text: "7:1" },
       { id: "d", text: "2:1" },
     ],
     correctOptionId: "a",
     explanation:
-      "WCAG 2.x AA requires at least 4.5:1 for normal text and 3:1 for large text (≥24px, or ≥19px bold). Light-gray-on-white placeholder-style text frequently fails this.",
+      "AA requires 4.5:1 for normal text. 3:1 is the bar for large text and for UI components/graphics; 7:1 is the stricter AAA level for normal text. Light-gray-on-white body text often quietly fails 4.5:1.",
   },
   {
     id: "a11y-keyboard",
@@ -844,77 +982,76 @@ const a11y: Question[] = [
       },
       {
         id: "b",
-        text: "Removing focus outlines globally is fine as long as it looks cleaner.",
+        text: "A logical tab order is enough; a visible focus ring is optional if the order is sensible.",
       },
       {
         id: "c",
-        text: "Keyboard users can rely on a mouse for complex widgets.",
+        text: "Custom widgets may rely on a documented mouse-only fallback if keyboard support is hard.",
       },
       {
         id: "d",
-        text: "Only forms need to be keyboard accessible.",
+        text: "Only native form controls must be keyboard-operable; custom components are exempt.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Keyboard-only and switch users navigate by Tab/arrow keys and need a visible focus ring to know where they are. Never strip `:focus-visible` styling without replacing it; everything clickable must also be keyboard-operable.",
+      "Keyboard and switch users need to reach and operate everything interactive — and *see* where focus is. Tab order alone isn't enough without a visible indicator, and there's no exemption for custom widgets or a mouse-only fallback.",
   },
   {
     id: "a11y-aria-first-rule",
     category: "a11y",
     type: "mcq",
-    difficulty: "medium",
-    prompt:
-      "You need a checkbox. Which approach best follows the first rule of ARIA?",
+    difficulty: "hard",
+    prompt: "You need a checkbox. Which best follows the first rule of ARIA?",
     options: [
       {
         id: "a",
-        text: "Use a native `<input type=\"checkbox\">` instead of building one from a `<div>` with ARIA roles.",
+        text: 'Use a native `<input type="checkbox">` rather than recreating one from a generic element.',
       },
       {
         id: "b",
-        text: 'Use a `<div role="checkbox">` with custom key handling for full control.',
+        text: 'Build a `<div role="checkbox" tabindex="0">` and wire up Space/Enter and `aria-checked` for full control.',
       },
       {
         id: "c",
-        text: "Use a `<span>` and toggle a CSS class.",
+        text: "Use a styled `<button aria-pressed>` — a checkbox is just a toggle anyway.",
       },
       {
         id: "d",
-        text: "Use an image of a checkbox.",
+        text: "Visually hide a native checkbox and mirror its state onto a `<div>` with ARIA roles.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      'The first rule of ARIA: if a native HTML element gives you the semantics and behavior you need, use it rather than repurposing a generic element with ARIA. "No ARIA is better than bad ARIA."',
+      'First rule of ARIA: if a native element provides the semantics and behavior, use it instead of rebuilding with ARIA — "no ARIA is better than bad ARIA." A `role="checkbox"` div needs you to reimplement keyboard and state; a toggle button (`aria-pressed`) is a different role with different semantics.',
   },
   {
     id: "a11y-heading-order",
     category: "a11y",
     type: "mcq",
     difficulty: "medium",
-    prompt: "Which heading practice supports screen-reader navigation?",
+    prompt: "Which heading practice best supports screen-reader navigation?",
     options: [
       {
         id: "a",
-        text: "Use one `<h1>` and don't skip levels — headings describe document structure, not font size.",
+        text: "Use one `<h1>` and don't skip levels — headings convey structure, and CSS controls size.",
       },
       {
         id: "b",
-        text: "Pick heading levels purely by how big you want the text.",
+        text: "Pick heading levels by the font size you want; readers go top-to-bottom regardless.",
       },
       {
         id: "c",
-        text: "Use multiple `<h1>`s for every section to be safe.",
+        text: "Multiple `<h1>`s are fine per `<section>`, since each section starts its own outline.",
       },
       {
         id: "d",
-        text: "Avoid headings and style bold `<div>`s instead.",
+        text: "Skipping from `<h2>` to `<h4>` is fine as long as `<h3>` is unused everywhere.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Screen-reader users jump between headings to skim a page, so a logical outline (one h1, then h2/h3 without skipping) matters. Choose levels by meaning and control size with CSS.",
+      "Screen-reader users jump by headings, so a clean outline (one h1, no skipped levels) matters; choose levels by meaning and style with CSS. The HTML5 'each section restarts the outline' idea was never implemented by assistive tech — a single h1 with proper nesting is the safe rule.",
   },
   {
     id: "a11y-live-region",
@@ -922,35 +1059,35 @@ const a11y: Question[] = [
     type: "mcq",
     difficulty: "hard",
     prompt:
-      "After saving, you show a 'Saved!' toast. How do you make sure screen-reader users hear it?",
+      "After saving, you show a non-urgent 'Saved!' toast. How should screen-reader users hear it?",
     options: [
       {
         id: "a",
-        text: 'Put the message in an `aria-live="polite"` region so it\'s announced when it appears.',
+        text: 'Put it in an `aria-live="polite"` region so it\'s announced when it appears, without stealing focus.',
       },
       {
         id: "b",
-        text: "Increase the toast's font size.",
+        text: 'Give it `role="alert"` so it\'s announced assertively, interrupting whatever is being read.',
       },
       {
         id: "c",
-        text: "Add `tabindex=\"-1\"` and hope focus lands there.",
+        text: 'Move focus to the toast with `tabindex="-1"` so the reader lands on it.',
       },
       {
         id: "d",
-        text: "Nothing — screen readers announce all DOM changes automatically.",
+        text: 'Add `aria-label="Saved"` to the toast element so assistive tech picks it up.',
       },
     ],
     correctOptionId: "a",
     explanation:
-      'Screen readers don\'t announce arbitrary DOM updates. A live region (`aria-live="polite"`, or `role="status"`) tells assistive tech to announce changes to that container without moving focus. Use `assertive` only for urgent messages.',
+      "A polite live region announces changes when the user is idle, without hijacking focus or interrupting — right for a non-urgent confirmation. `role=\"alert\"` is assertive (save it for errors), moving focus is disruptive for a transient toast, and `aria-label` alone isn't announced just because the element appears.",
   },
   {
     id: "a11y-bug-div-button",
     category: "a11y",
     type: "mcq",
     difficulty: "medium",
-    prompt: "What accessibility problems does this control have?",
+    prompt: "What's the most serious accessibility problem here?",
     code: `<div className="btn" onClick={openMenu}>
   Menu
 </div>`,
@@ -958,24 +1095,24 @@ const a11y: Question[] = [
     options: [
       {
         id: "a",
-        text: "It's not focusable or keyboard-operable and isn't announced as a button — use a real `<button>`.",
+        text: "It isn't focusable or keyboard-operable and has no button role — use a real `<button>`.",
       },
       {
         id: "b",
-        text: "`className` should be `class`.",
+        text: "It works for mouse users; it just needs `cursor: pointer` to look clickable.",
       },
       {
         id: "c",
-        text: "`onClick` doesn't work on `<div>` elements.",
+        text: "It needs `aria-label=\"Menu\"`, because a `<div>` has no accessible name.",
       },
       {
         id: "d",
-        text: "It needs an `alt` attribute.",
+        text: "`onClick` on a `<div>` only fires through React's synthetic events, not natively.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "A clickable `<div>` can't receive keyboard focus, doesn't respond to Enter/Space, and has no button role. Keyboard and screen-reader users can't use it. Replace it with `<button>` (or, as a last resort, add `role`, `tabIndex`, and key handlers).",
+      "Keyboard users can't Tab to it or activate it with Enter/Space, and it's not announced as a button. Swapping to `<button>` fixes all of that at once. `cursor: pointer` is cosmetic, the text already gives it a name, and React's events aren't the issue.",
   },
   {
     id: "a11y-bug-placeholder-label",
@@ -988,24 +1125,24 @@ const a11y: Question[] = [
     options: [
       {
         id: "a",
-        text: "It has no associated `<label>` — a placeholder isn't a label and disappears once the user types.",
+        text: "It has no associated `<label>` — a placeholder isn't a label and vanishes once the user types.",
       },
       {
         id: "b",
-        text: "`type=\"email\"` isn't a valid input type.",
+        text: "The placeholder is fine as a label as long as it has sufficient contrast.",
       },
       {
         id: "c",
-        text: "Placeholders are forbidden by HTML.",
+        text: "It's missing `aria-required`, which email fields need to be announced.",
       },
       {
         id: "d",
-        text: "It needs `autocomplete=\"off\"`.",
+        text: "`type=\"email\"` suppresses the label; use `type=\"text\"` with a pattern instead.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "Placeholder text is not a substitute for a label: it vanishes on input, often has poor contrast, and isn't reliably announced. Add a real `<label>` associated with the input.",
+      "A placeholder isn't a substitute for a label: it disappears on input, often fails contrast, and isn't reliably treated as the field's name. Add a real associated `<label>`. (Input type doesn't suppress labels, and the missing label — not `aria-required` — is the problem.)",
   },
   {
     id: "a11y-bug-icon-button",
@@ -1020,24 +1157,24 @@ const a11y: Question[] = [
     options: [
       {
         id: "a",
-        text: 'An accessible name — add `aria-label="Close"` (the icon alone conveys nothing to screen readers).',
+        text: 'An accessible name — add `aria-label="Close"` (and hide the icon with `aria-hidden`).',
       },
       {
         id: "b",
-        text: "A `type` attribute is legally required.",
+        text: 'Give the `<XIcon>` `role="img"` so screen readers announce it as an image.',
       },
       {
         id: "c",
-        text: "The icon should be a background image.",
+        text: 'Set `title="Close"` on the `<XIcon>`; that becomes the button\'s accessible name.',
       },
       {
         id: "d",
-        text: "Nothing — the icon is enough.",
+        text: 'Add `aria-hidden="true"` to the button so the unlabeled icon doesn\'t confuse users.',
       },
     ],
     correctOptionId: "a",
     explanation:
-      'An icon button has no text, so screen readers announce nothing meaningful. Give it an accessible name with `aria-label="Close"` (and hide the decorative icon from the a11y tree with `aria-hidden`).',
+      'The button has no text, so screen readers announce nothing useful. Give it a name with `aria-label="Close"` and mark the icon `aria-hidden`. `role="img"` would announce "image", `title` on an SVG is unreliable, and `aria-hidden` on the button would hide the control entirely.',
   },
   {
     id: "a11y-fix-div-button",
@@ -1072,7 +1209,7 @@ const a11y: Question[] = [
     referenceSolution: `<label htmlFor="email">Email address</label>
 <input id="email" type="email" />`,
     explanation:
-      "A `<label htmlFor=\"email\">` tied to `<input id=\"email\">` is announced by assistive tech and makes the label text a click target for the field. (In React it's `htmlFor`, not `for`.)",
+      'A `<label htmlFor="email">` tied to `<input id="email">` is announced by assistive tech and makes the label text a click target for the field. (In React it\'s `htmlFor`, not `for`.)',
   },
   {
     id: "a11y-fix-img-alt",
@@ -1110,4 +1247,77 @@ const a11y: Question[] = [
   },
 ];
 
-export const QUESTION_BANK: Question[] = [...react, ...uiux, ...a11y];
+/**
+ * Subcategory for each question, kept in one place so the taxonomy is easy to
+ * read and adjust. Used to track which areas the user struggles with and to
+ * offer focused, weak-area practice rounds.
+ */
+const TOPIC_BY_ID: Record<string, string> = {
+  // React
+  "react-keys": "Rendering & keys",
+  "react-derived-state": "State & props",
+  "react-setstate-same-value": "State & props",
+  "react-effect-purpose": "React Hooks",
+  "react-controlled-input": "State & props",
+  "react-compiler-memo": "Rendering & keys",
+  "react-ref-no-rerender": "State & props",
+  "react-bug-onclick-call": "Rendering & keys",
+  "react-bug-conditional-hook": "React Hooks",
+  "react-bug-index-key": "Rendering & keys",
+  "react-bug-mutate-state": "State & props",
+  "react-bug-effect-deps": "React Hooks",
+  "react-fix-infinite-effect": "React Hooks",
+  "react-fix-functional-update": "React Hooks",
+  "react-fix-mutation": "State & props",
+  "react-fix-key": "Rendering & keys",
+  // UI/UX
+  "uiux-hierarchy": "Visual design",
+  "uiux-feedback": "Interaction & feedback",
+  "uiux-validation-timing": "Interaction & feedback",
+  "uiux-error-message": "Interaction & feedback",
+  "uiux-affordance": "Visual design",
+  "uiux-jakobs-law": "UX heuristics",
+  "uiux-fitts": "UX heuristics",
+  "uiux-progressive-disclosure": "UX heuristics",
+  "uiux-recognition-recall": "UX heuristics",
+  "uiux-destructive-confirm": "Interaction & feedback",
+  "uiux-perceived-performance": "Interaction & feedback",
+  "uiux-color-alone": "Visual design",
+  "uiux-empty-state": "Visual design",
+  "uiux-bug-disabled-submit": "Interaction & feedback",
+  // Accessibility
+  "a11y-semantic-button": "Semantic structure",
+  "a11y-alt-decorative": "Names & labels",
+  "a11y-label-association": "Names & labels",
+  "a11y-contrast": "Visual & keyboard",
+  "a11y-keyboard": "Visual & keyboard",
+  "a11y-aria-first-rule": "Semantic structure",
+  "a11y-heading-order": "Semantic structure",
+  "a11y-live-region": "Visual & keyboard",
+  "a11y-bug-div-button": "Semantic structure",
+  "a11y-bug-placeholder-label": "Names & labels",
+  "a11y-bug-icon-button": "Names & labels",
+  "a11y-fix-div-button": "Semantic structure",
+  "a11y-fix-label": "Names & labels",
+  "a11y-fix-img-alt": "Names & labels",
+  "a11y-fix-icon-button": "Names & labels",
+};
+
+function attachTopic(draft: QuestionDraft): Question {
+  const topic = TOPIC_BY_ID[draft.id];
+  if (!topic) throw new Error(`Question "${draft.id}" is missing a topic`);
+  return { ...draft, topic } as Question;
+}
+
+export const QUESTION_BANK: Question[] = [...react, ...uiux, ...a11y].map(
+  attachTopic
+);
+
+/** All topics that exist for a category, in first-seen order. */
+export function topicsForCategory(category: Question["category"]): string[] {
+  const seen = new Set<string>();
+  for (const q of QUESTION_BANK) {
+    if (q.category === category) seen.add(q.topic);
+  }
+  return [...seen];
+}

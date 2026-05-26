@@ -19,6 +19,8 @@ export const CATEGORY_BLURBS: Record<Category, string> = {
 interface BaseQuestion {
   id: string;
   category: Category;
+  /** Fine-grained subcategory (e.g. "React Hooks", "Visual & keyboard"). */
+  topic: string;
   type: QuestionType;
   difficulty: Difficulty;
   /** The question text. */
@@ -72,6 +74,8 @@ export type QuizPhase = "setup" | "active" | "results";
 export interface QuizConfig {
   categories: Category[];
   count: number;
+  /** Optional subcategory filter — used to focus a round on weak topics. */
+  topics?: string[];
 }
 
 export interface QuizState {
@@ -81,13 +85,20 @@ export interface QuizState {
   answers: Record<string, AnswerRecord>;
 }
 
-export interface CategoryScore {
+export interface ScoreTally {
   correct: number;
   total: number;
 }
 
+/** @deprecated use {@link ScoreTally} */
+export type CategoryScore = ScoreTally;
+
 export interface QuizResults {
   total: number;
   correct: number;
-  byCategory: Partial<Record<Category, CategoryScore>>;
+  byCategory: Partial<Record<Category, ScoreTally>>;
+  byTopic: Record<string, ScoreTally>;
 }
+
+/** Accumulated per-topic performance across many rounds (persisted). */
+export type TopicStats = Record<string, ScoreTally>;

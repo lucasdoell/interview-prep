@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowClockwise, Play } from "@phosphor-icons/react";
+import { ArrowClockwise, Play, Target } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { rankTopicsByWeakness } from "@/lib/quiz/engine";
 import { QUESTION_BANK } from "@/lib/quiz/questions";
 import {
   CATEGORIES,
@@ -22,20 +23,25 @@ import {
   type Category,
   type QuizConfig,
   type QuizState,
+  type TopicStats,
 } from "@/lib/quiz/types";
 
 const ROUND_SIZES = [8, 12, 16];
 
 export function SetupScreen({
   savedSession,
+  stats,
   onStart,
   onResume,
   onDismissResume,
+  onResetStats,
 }: {
   savedSession: QuizState | null;
+  stats: TopicStats;
   onStart: (config: QuizConfig) => void;
   onResume: () => void;
   onDismissResume: () => void;
+  onResetStats: () => void;
 }) {
   const [selected, setSelected] = useState<Set<Category>>(
     () => new Set(CATEGORIES)
@@ -48,16 +54,22 @@ export function SetupScreen({
     return counts;
   }, []);
 
-  const available = useMemo(
-    () =>
-      CATEGORIES.filter((c) => selected.has(c)).reduce(
-        (sum, c) => sum + countsByCategory[c],
-        0
-      ),
-    [selected, countsByCategory]
+  const available = CATEGORIES.filter((c) => selected.has(c)).reduce(
+    (sum, c) => sum + countsByCategory[c],
+    0
   );
-
   const roundCount = Math.min(count, available);
+
+  // Weak spots: topics with the lowest accuracy, once there's enough signal.
+  const totalAnswered = useMemo(
+    () => Object.values(stats).reduce((sum, t) => sum + t.total, 0),
+    [stats]
+  );
+  const weakTopics = useMemo(
+    () => rankTopicsByWeakness(stats, 2).slice(0, 3),
+    [stats]
+  );
+  const showWeakSpots = totalAnswered >= 5 && weakTopics.length > 0;
 
   function toggle(category: Category) {
     setSelected((prev) => {
@@ -71,6 +83,14 @@ export function SetupScreen({
   function start() {
     if (selected.size === 0) return;
     onStart({ categories: [...selected], count });
+  }
+
+  function startWeakAreas() {
+    onStart({
+      categories: [...CATEGORIES],
+      count,
+      topics: weakTopics.map((t) => t.topic),
+    });
   }
 
   return (
@@ -97,6 +117,46 @@ export function SetupScreen({
               </Button>
             </div>
           </CardContent>
+        </Card>
+      ) : null}
+
+      {showWeakSpots ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Your weak spots</CardTitle>
+            <CardDescription>
+              Based on {totalAnswered} answered questions so far. Lowest
+              accuracy first.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            {weakTopics.map((t) => {
+              const pct = Math.round(t.accuracy * 100);
+              return (
+                <div key={t.topic} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span>{t.topic}</span>
+                    <span className="text-muted-foreground tabular-nums">
+                      {pct}% · {t.correct}/{t.total}
+                    </span>
+                  </div>
+                  <Progress
+                    value={pct}
+                    aria-label={`${t.topic}: ${pct} percent correct`}
+                  />
+                </div>
+              );
+            })}
+          </CardContent>
+          <CardFooter className="justify-between gap-2">
+            <Button onClick={startWeakAreas}>
+              <Target weight="fill" aria-hidden="true" />
+              Practice these topics
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onResetStats}>
+              Reset progress
+            </Button>
+          </CardFooter>
         </Card>
       ) : null}
 

@@ -5,7 +5,9 @@ import {
   gradeMcq,
   getMissedQuestions,
   initialQuizState,
+  mergeTopicStats,
   quizReducer,
+  rankTopicsByWeakness,
   selectQuestions,
   shuffle,
 } from "./engine";
@@ -26,10 +28,15 @@ function makeRng(seed: number): () => number {
   };
 }
 
-function mcq(id: string, category: Question["category"]): MultipleChoiceQuestion {
+function mcq(
+  id: string,
+  category: Question["category"],
+  topic = `${category}-topic`
+): MultipleChoiceQuestion {
   return {
     id,
     category,
+    topic,
     type: "mcq",
     difficulty: "easy",
     prompt: `Prompt ${id}`,
@@ -42,10 +49,15 @@ function mcq(id: string, category: Question["category"]): MultipleChoiceQuestion
   };
 }
 
-function code(id: string, category: Question["category"]): CodeQuestion {
+function code(
+  id: string,
+  category: Question["category"],
+  topic = `${category}-topic`
+): CodeQuestion {
   return {
     id,
     category,
+    topic,
     type: "code",
     difficulty: "medium",
     prompt: `Prompt ${id}`,
@@ -286,5 +298,84 @@ describe("quizReducer", () => {
     };
     const s = quizReducer(initialQuizState, { type: "HYDRATE", state: saved });
     expect(s).toEqual(saved);
+  });
+});
+
+describe("topic tagging", () => {
+  const topicBank = [
+    mcq("r1", "react", "Hooks"),
+    mcq("r2", "react", "Hooks"),
+    mcq("r3", "react", "Keys"),
+    mcq("a1", "a11y", "Labels"),
+    mcq("a2", "a11y", "Contrast"),
+  ];
+
+  it("selectQuestions filters by topic when topics are provided", () => {
+    const out = selectQuestions(
+      topicBank,
+      { categories: ["react", "a11y"], count: 10, topics: ["Hooks"] },
+      makeRng(2)
+    );
+    expect(out.map((q) => q.id).sort()).toEqual(["r1", "r2"]);
+  });
+
+  it("computeResults breaks the score down by topic", () => {
+    const questions = [
+      mcq("r1", "react", "Hooks"),
+      mcq("r2", "react", "Hooks"),
+      mcq("r3", "react", "Keys"),
+    ];
+    const answers = {
+      r1: { questionId: "r1", isCorrect: true },
+      r2: { questionId: "r2", isCorrect: false },
+      r3: { questionId: "r3", isCorrect: true },
+    };
+    const res = computeResults(questions, answers);
+    expect(res.byTopic.Hooks).toEqual({ correct: 1, total: 2 });
+    expect(res.byTopic.Keys).toEqual({ correct: 1, total: 1 });
+  });
+});
+
+describe("mergeTopicStats", () => {
+  it("accumulates a round into prior stats without mutating prev", () => {
+    const prev = { Hooks: { correct: 1, total: 2 } };
+    const questions = [mcq("r1", "react", "Hooks"), mcq("k1", "react", "Keys")];
+    const answers = {
+      r1: { questionId: "r1", isCorrect: true },
+      k1: { questionId: "k1", isCorrect: false },
+    };
+    const next = mergeTopicStats(prev, questions, answers);
+    expect(next.Hooks).toEqual({ correct: 2, total: 3 });
+    expect(next.Keys).toEqual({ correct: 0, total: 1 });
+    // prev is untouched
+    expect(prev.Hooks).toEqual({ correct: 1, total: 2 });
+  });
+
+  it("ignores unanswered questions", () => {
+    const next = mergeTopicStats({}, [mcq("r1", "react", "Hooks")], {});
+    expect(next).toEqual({});
+  });
+});
+
+describe("rankTopicsByWeakness", () => {
+  it("orders topics weakest (lowest accuracy) first", () => {
+    const stats = {
+      Strong: { correct: 9, total: 10 },
+      Weak: { correct: 2, total: 10 },
+      Mid: { correct: 5, total: 10 },
+    };
+    expect(rankTopicsByWeakness(stats).map((t) => t.topic)).toEqual([
+      "Weak",
+      "Mid",
+      "Strong",
+    ]);
+  });
+
+  it("excludes topics below the minimum attempt threshold", () => {
+    const stats = {
+      Seen: { correct: 1, total: 3 },
+      Barely: { correct: 0, total: 1 },
+    };
+    expect(rankTopicsByWeakness(stats, 3).map((t) => t.topic)).toEqual(["Seen"]);
   });
 });

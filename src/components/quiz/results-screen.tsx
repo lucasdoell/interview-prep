@@ -50,6 +50,15 @@ export function ResultsScreen({
   const pct = results.total
     ? Math.round((results.correct / results.total) * 100)
     : 0;
+  // Per-topic breakdown for this round, weakest first.
+  const topicBreakdown = Object.entries(results.byTopic)
+    .map(([topic, s]) => ({
+      topic,
+      correct: s.correct,
+      total: s.total,
+      pct: Math.round((s.correct / s.total) * 100),
+    }))
+    .sort((a, b) => a.pct - b.pct || b.total - a.total);
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -76,7 +85,7 @@ export function ResultsScreen({
           <Separator />
 
           <div className="space-y-3">
-            <h3 className="font-heading text-xs font-medium">By topic</h3>
+            <h3 className="font-heading text-xs font-medium">By category</h3>
             {CATEGORIES.filter((c) => results.byCategory[c]).map((category) => {
               const score = results.byCategory[category]!;
               const catPct = Math.round((score.correct / score.total) * 100);
@@ -95,6 +104,28 @@ export function ResultsScreen({
                 </div>
               );
             })}
+          </div>
+
+          <Separator />
+
+          <div className="space-y-3">
+            <h3 className="font-heading text-xs font-medium">
+              By focus area
+            </h3>
+            {topicBreakdown.map((t) => (
+              <div key={t.topic} className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span>{t.topic}</span>
+                  <span className="text-muted-foreground tabular-nums">
+                    {t.correct}/{t.total}
+                  </span>
+                </div>
+                <Progress
+                  value={t.pct}
+                  aria-label={`${t.topic}: ${t.correct} of ${t.total}`}
+                />
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

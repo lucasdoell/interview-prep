@@ -6,6 +6,7 @@ import type {
   QuizConfig,
   QuizResults,
   QuizState,
+  TopicStats,
 } from "./types";
 
 type Rng = () => number;
@@ -30,12 +31,17 @@ export function selectQuestions(
   config: QuizConfig,
   rng: Rng = Math.random
 ): Question[] {
-  const { categories, count } = config;
+  const { categories, count, topics } = config;
   if (categories.length === 0 || count <= 0) return [];
 
+  const topicFilter = topics && topics.length > 0 ? new Set(topics) : null;
   const pools = categories.map((category) =>
     shuffle(
-      bank.filter((q) => q.category === category),
+      bank.filter(
+        (q) =>
+          q.category === category &&
+          (!topicFilter || topicFilter.has(q.topic))
+      ),
       rng
     )
   );
@@ -73,6 +79,7 @@ export function computeResults(
   answers: Record<string, AnswerRecord>
 ): QuizResults {
   const byCategory: QuizResults["byCategory"] = {};
+  const byTopic: QuizResults["byTopic"] = {};
   let correct = 0;
 
   for (const q of questions) {
@@ -80,12 +87,65 @@ export function computeResults(
     const isCorrect = answer?.isCorrect ?? false;
     if (isCorrect) correct++;
 
-    const bucket = (byCategory[q.category] ??= { correct: 0, total: 0 });
-    bucket.total++;
-    if (isCorrect) bucket.correct++;
+    const catBucket = (byCategory[q.category] ??= { correct: 0, total: 0 });
+    catBucket.total++;
+    if (isCorrect) catBucket.correct++;
+
+    const topicBucket = (byTopic[q.topic] ??= { correct: 0, total: 0 });
+    topicBucket.total++;
+    if (isCorrect) topicBucket.correct++;
   }
 
-  return { total: questions.length, correct, byCategory };
+  return { total: questions.length, correct, byCategory, byTopic };
+}
+
+/**
+ * Merge a completed round's results into a running per-topic tally.
+ * Returns a new object (does not mutate `prev`).
+ */
+export function mergeTopicStats(
+  prev: TopicStats,
+  questions: readonly Question[],
+  answers: Record<string, AnswerRecord>
+): TopicStats {
+  const next: TopicStats = {};
+  for (const [topic, tally] of Object.entries(prev)) {
+    next[topic] = { ...tally };
+  }
+  for (const q of questions) {
+    const answer = answers[q.id];
+    if (!answer) continue; // only count answered questions
+    const bucket = (next[q.topic] ??= { correct: 0, total: 0 });
+    bucket.total++;
+    if (answer.isCorrect) bucket.correct++;
+  }
+  return next;
+}
+
+export interface TopicRanking {
+  topic: string;
+  correct: number;
+  total: number;
+  accuracy: number;
+}
+
+/**
+ * Topics ranked weakest-first (lowest accuracy). Only includes topics with at
+ * least `minTotal` attempts so a single unlucky question doesn't dominate.
+ */
+export function rankTopicsByWeakness(
+  stats: TopicStats,
+  minTotal = 1
+): TopicRanking[] {
+  return Object.entries(stats)
+    .filter(([, t]) => t.total >= minTotal)
+    .map(([topic, t]) => ({
+      topic,
+      correct: t.correct,
+      total: t.total,
+      accuracy: t.total === 0 ? 0 : t.correct / t.total,
+    }))
+    .sort((a, b) => a.accuracy - b.accuracy || b.total - a.total);
 }
 
 /** Questions the user got wrong or never answered — used for "retry missed". */
