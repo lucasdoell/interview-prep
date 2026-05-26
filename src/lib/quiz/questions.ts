@@ -14,9 +14,11 @@ type QuestionDraft =
  * (see `selectQuestions`), which also shuffles option order so the correct
  * answer isn't positionally predictable.
  *
- * Distractors are written to be *plausible* — real misconceptions or
- * defensible-but-worse choices — so questions test understanding rather than
- * spotting the one serious option among jokes.
+ * Option-writing rules (so questions test understanding, not test-taking):
+ *  - Every option is a confident, specific claim of roughly equal length —
+ *    the correct one is never the longest or most qualified. Rationale lives
+ *    in `explanation`, not bolted onto the right answer.
+ *  - Distractors are real misconceptions or defensible-but-worse choices.
  *
  * Three flavors per category:
  *  - concept MCQs that reinforce the idea behind a topic
@@ -34,19 +36,19 @@ const react: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Gives each item a stable identity so React can match elements across renders and preserve their state.",
+        text: "It gives each item a stable identity so React can match elements across renders and keep their state.",
       },
       {
         id: "b",
-        text: "Tells React it can skip re-rendering an item whose `key` didn't change, like built-in memoization.",
+        text: "It lets React skip re-rendering any item whose key and props are unchanged, like automatic memoization.",
       },
       {
         id: "c",
-        text: "Only silences the console warning — it has no effect on what the DOM does at runtime.",
+        text: "It only suppresses the dev warning and has no effect on how React updates the real DOM.",
       },
       {
         id: "d",
-        text: "Sets the DOM `id` of each rendered element so you can query it later.",
+        text: "It becomes the element's DOM id, so you can later select that item by its key value.",
       },
     ],
     correctOptionId: "a",
@@ -63,19 +65,19 @@ const react: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Compute it during render from `todos` (e.g. `todos.filter(t => t.done).length`).",
+        text: "Compute it during render straight from `todos`, e.g. `todos.filter(t => t.done).length`.",
       },
       {
         id: "b",
-        text: "Keep a `completedCount` state and update it in the same handler that toggles a todo.",
+        text: "Keep a `completedCount` in state and update it in the same handler that toggles a todo.",
       },
       {
         id: "c",
-        text: "Recompute it in a `useEffect([todos])` and store the result back in state.",
+        text: "Recompute it inside a `useEffect([todos])` and write the result back into separate state.",
       },
       {
         id: "d",
-        text: "Store it in a `useRef` and mutate `ref.current` whenever a todo changes.",
+        text: "Store it in a `useRef` and update `ref.current` whenever a todo is toggled on or off.",
       },
     ],
     correctOptionId: "a",
@@ -92,19 +94,19 @@ const react: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Bail out and skip re-rendering this component for that update.",
+        text: "It may bail out of the update and skip re-rendering this component for that change.",
       },
       {
         id: "b",
-        text: "Re-render once, then bail out of any further renders that value triggers.",
+        text: "It re-renders once, then bails out of any further renders the same value would trigger.",
       },
       {
         id: "c",
-        text: "Re-render the component but skip running its effects.",
+        text: "It re-renders the component as usual but skips running that render's effects.",
       },
       {
         id: "d",
-        text: "Throw a development warning about an unnecessary state update.",
+        text: "It throws a development-only warning telling you the update was unnecessary.",
       },
     ],
     correctOptionId: "a",
@@ -120,19 +122,19 @@ const react: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Subscribing to a browser event or external store, and unsubscribing on cleanup.",
+        text: "Subscribing to a browser event or external store and unsubscribing again in the cleanup.",
       },
       {
         id: "b",
-        text: "Recomputing a filtered list to display whenever the source data changes.",
+        text: "Deriving a filtered list for display whenever the underlying source data changes.",
       },
       {
         id: "c",
-        text: "Keeping a derived total in state, updated whenever its inputs change.",
+        text: "Keeping a running total in state that you update by hand every single time one of its inputs happens to change.",
       },
       {
         id: "d",
-        text: "Resetting a form's local state when its `key`-less parent re-renders.",
+        text: "Resetting a child's local state from the parent whenever the parent re-renders.",
       },
     ],
     correctOptionId: "a",
@@ -148,19 +150,19 @@ const react: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Its displayed `value` comes from state and every change flows through `onChange`.",
+        text: "Its `value` prop is driven by React state, and every edit is routed through `onChange`.",
       },
       {
         id: "b",
-        text: "It uses `defaultValue` for the initial text and you read the current value from a ref.",
+        text: "It sets the initial text with `defaultValue` and you read the current value from a ref.",
       },
       {
         id: "c",
-        text: "It keeps its value in the DOM and syncs to React state only on blur.",
+        text: "It holds the value in the DOM and only copies it into React state on blur.",
       },
       {
         id: "d",
-        text: "It has an `onChange` handler but lets the browser manage the displayed value.",
+        text: "It wires up `onChange` for events but lets the browser own the displayed value.",
       },
     ],
     correctOptionId: "a",
@@ -177,19 +179,19 @@ const react: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "It auto-memoizes components and values, so most manual `useMemo`/`useCallback` becomes unnecessary.",
+        text: "It auto-memoizes components and values, so most hand-written `useMemo`/`useCallback` is unnecessary.",
       },
       {
         id: "b",
-        text: "It only helps if you also wrap each component in `React.memo`; on its own it does nothing.",
+        text: "It only takes effect once every component is also wrapped in `React.memo`; alone it does nothing.",
       },
       {
         id: "c",
-        text: "It memoizes values, but you still need `useCallback` on every function passed to a child.",
+        text: "It memoizes values but still expects `useCallback` on every single function you happen to pass down to a child component.",
       },
       {
         id: "d",
-        text: "It compiles `useState` into signals, so updating state no longer triggers re-renders.",
+        text: "It compiles `useState` into signals, so state changes update the DOM without a re-render.",
       },
     ],
     correctOptionId: "a",
@@ -206,11 +208,20 @@ const react: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Mutating an object held in a ref, e.g. `ref.current.x = 1`.",
+        text: "Mutating a value stored in a ref, such as `ref.current.x = 1`.",
       },
-      { id: "b", text: "Calling a `useState` setter with a new value." },
-      { id: "c", text: "A subscribed `useContext` value changing." },
-      { id: "d", text: "Receiving a new prop value from the parent." },
+      {
+        id: "b",
+        text: "Calling a `useState` setter with a value different from the current one.",
+      },
+      {
+        id: "c",
+        text: "A context value this component reads via `useContext` being updated.",
+      },
+      {
+        id: "d",
+        text: "The parent re-rendering and passing a new value for one of its props.",
+      },
     ],
     correctOptionId: "a",
     explanation:
@@ -227,19 +238,19 @@ const react: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "`handleDelete()` is called during render; pass the function: `onClick={handleDelete}` (or `() => handleDelete()`).",
+        text: "`handleDelete` runs during render and its return value becomes the handler; pass the function itself.",
       },
       {
         id: "b",
-        text: "`handleDelete` must be wrapped in `useCallback`, or it's recreated every render and the click misfires.",
+        text: "`handleDelete` isn't wrapped in `useCallback`, so it's recreated on every render, and as a result the click silently misfires.",
       },
       {
         id: "c",
-        text: "The button needs `type=\"button\"`, otherwise the handler never runs.",
+        text: "The button is missing `type=\"button\"`, so the handler never runs inside a form.",
       },
       {
         id: "d",
-        text: "Inline handlers in JSX must be arrow functions; a named reference won't bind correctly.",
+        text: "JSX handlers must be arrow functions; a bare named reference like this won't bind correctly.",
       },
     ],
     correctOptionId: "a",
@@ -261,19 +272,19 @@ const react: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "`useState` runs conditionally, so the number/order of hooks can change between renders.",
+        text: "`useState` runs conditionally, so the count and order of hooks can change between renders.",
       },
       {
         id: "b",
-        text: "A component may not `return` before all of its hooks have been declared, in any case.",
+        text: "A component can't return before all of its hooks are declared, regardless of the condition.",
       },
       {
         id: "c",
-        text: "`useState` must be given an initial value whose type matches the `userId` prop.",
+        text: "`useState` needs an initial value whose type matches the `userId` prop it depends on.",
       },
       {
         id: "d",
-        text: "Early returns must render `null`, never JSX, or React loses track of state.",
+        text: "An early return must render `null` rather than JSX, or React loses track of the state.",
       },
     ],
     correctOptionId: "a",
@@ -294,19 +305,19 @@ const react: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Indexes track position, not identity — after a reorder/delete, React reuses the wrong instances and their local state (e.g. input text) sticks to the wrong row.",
+        text: "Indexes track position, not identity, so a reorder leaves each row's state attached to the wrong item.",
       },
       {
         id: "b",
-        text: "Index keys force the entire list to re-render on every change, which corrupts input state.",
+        text: "Index keys force the entire list to re-render from scratch on every single change, which is what corrupts the input state.",
       },
       {
         id: "c",
-        text: "React coerces numeric keys to strings, and the mismatch drops the `row` prop updates.",
+        text: "React coerces numeric keys to strings, and the mismatch quietly drops the `row` prop updates.",
       },
       {
         id: "d",
-        text: "`key` can't be derived from the second `.map()` argument, so React ignores it.",
+        text: "A `key` can't be derived from the second `.map()` argument, so React ends up ignoring it.",
       },
     ],
     correctOptionId: "a",
@@ -327,19 +338,19 @@ const react: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "`items` is mutated in place, so the reference is unchanged and React bails on the render. Use `setItems([...items, item])`.",
+        text: "`items` is mutated in place, so its reference is unchanged and React skips the re-render.",
       },
       {
         id: "b",
-        text: "`push` returns the new length, so `setItems` ends up storing a number, not the array.",
+        text: "`push` returns the new array length, so `setItems` ends up storing a number, not the array.",
       },
       {
         id: "c",
-        text: "State updates are asynchronous, so you must `await setItems(...)` before the UI reflects it.",
+        text: "State setters are async, so you must `await setItems(...)` before the list reflects the change.",
       },
       {
         id: "d",
-        text: "Array state requires the functional form `setItems(prev => prev)` to register a change.",
+        text: "Array state requires the functional form `setItems(prev => prev)` to register as changed.",
       },
     ],
     correctOptionId: "a",
@@ -359,19 +370,19 @@ const react: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "With no dependency array it runs after every render; `setUser` causes a render, which re-runs it — a loop. Add `[userId]`.",
+        text: "With no dependency array it runs after every render, and `setUser` triggers another render — a loop.",
       },
       {
         id: "b",
-        text: "`setUser` is a new function each render, so the effect sees a changed dependency and re-fires.",
+        text: "`setUser` is a new function each render, so the effect sees a changed dependency on each pass and keeps refiring.",
       },
       {
         id: "c",
-        text: "The effect callback must be `async` to await `fetchUser`; without that React retries it every frame.",
+        text: "The effect callback has to be `async` to await `fetchUser`, and React retries it until it is.",
       },
       {
         id: "d",
-        text: "The dependency array is missing `user`, so React can't tell the fetch already completed.",
+        text: "The dependency array is missing `user`, so React can't tell the fetch has already finished.",
       },
     ],
     correctOptionId: "a",
@@ -481,19 +492,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Differentiate them with size, weight, color, and spacing so importance is obvious at a glance.",
+        text: "Vary their size, weight, color, and spacing so the most important element clearly leads.",
       },
       {
         id: "b",
-        text: "Add equal, generous whitespace around all three so the section feels lighter.",
+        text: "Add equal, generous whitespace around all three so the whole section reads as lighter.",
       },
       {
         id: "c",
-        text: "Apply the same accent color to all three to visually tie them together.",
+        text: "Apply one shared accent color across all three so they feel like a coherent group.",
       },
       {
         id: "d",
-        text: "Increase every text size proportionally to improve overall readability.",
+        text: "Scale every text element up proportionally so the section is easier to read overall.",
       },
     ],
     correctOptionId: "a",
@@ -510,19 +521,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Immediately put the button in a loading/disabled state, then confirm success or show an error.",
+        text: "Put the button into a loading/disabled state at once, then confirm success or surface an error.",
       },
       {
         id: "b",
-        text: "Optimistically show success right away and quietly roll back if the request fails.",
+        text: "Show success immediately and quietly roll the change back if the request later fails.",
       },
       {
         id: "c",
-        text: "Leave the button unchanged and show a toast only once the request finishes.",
+        text: "Leave the button untouched and show a toast only once the request has finished.",
       },
       {
         id: "d",
-        text: "Disable the whole screen with a full-page blocking spinner until it's done.",
+        text: "Block the whole screen behind a full-page spinner until the request finally resolves, one way or the other.",
       },
     ],
     correctOptionId: "a",
@@ -538,19 +549,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "On blur or submit — then, once a field is in error, re-validate live as the user fixes it.",
+        text: "On blur or submit, then validate live only after that field has gone into an error state.",
       },
       {
         id: "b",
-        text: "On every keystroke from the first character, so feedback is always instant.",
+        text: "On every keystroke from the very first character, so feedback is instant the whole time.",
       },
       {
         id: "c",
-        text: "Only on submit; inline errors mid-form are distracting and should be avoided.",
+        text: "Only when the form is submitted, since inline errors shown mid-field tend to distract people.",
       },
       {
         id: "d",
-        text: "On blur only, and never re-check until the next submit.",
+        text: "On blur only, and then never re-check that field again until the next form submit.",
       },
     ],
     correctOptionId: "a",
@@ -566,13 +577,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "\"That card was declined. Check the number and expiry, or try another card.\"",
+        text: "\"That card was declined. Check the number and expiry date, or try a different card.\"",
       },
-      { id: "b", text: '"Payment failed. Please try again later."' },
-      { id: "c", text: '"We couldn\'t process your payment (error 4051)."' },
+      {
+        id: "b",
+        text: "\"Your payment didn't go through. Please wait a few minutes and try submitting again.\"",
+      },
+      {
+        id: "c",
+        text: "\"We couldn't process your payment right now. Reference code 4051-PAY for support.\"",
+      },
       {
         id: "d",
-        text: '"Your card was declined by the issuing bank for security reasons."',
+        text: "\"Your card was declined by the issuing bank for undisclosed security reasons.\"",
       },
     ],
     correctOptionId: "a",
@@ -588,19 +605,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "A perceived visual cue for how an element can be used — a button looks pressable, a field looks editable.",
+        text: "A perceived cue for how an element can be used — a button looks pressable, a link clickable.",
       },
       {
         id: "b",
-        text: "The negative space that separates one element from its neighbours.",
+        text: "The empty space deliberately left around an element to separate it from its neighbours.",
       },
       {
         id: "c",
-        text: "A design token that maps a component to its accessible ARIA role.",
+        text: "A design-system token that maps a component to its correct accessible ARIA role.",
       },
       {
         id: "d",
-        text: "The placeholder UI shown while an interactive element is loading.",
+        text: "The placeholder shown in an element's place while its interactive parts are loading.",
       },
     ],
     correctOptionId: "a",
@@ -617,19 +634,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "It breaks a strong convention — users expect a top-left logo that links home (Jakob's Law).",
+        text: "It breaks a strong convention — people expect a top-left logo that links to the home page.",
       },
       {
         id: "b",
-        text: "Repurposing the logo hurts SEO because crawlers expect it in the header.",
+        text: "It hurts SEO, because search crawlers expect to find the site logo inside the header.",
       },
       {
         id: "c",
-        text: "Fixed bottom-right elements always overlap the mobile browser's UI chrome.",
+        text: "Fixed bottom-right elements will overlap the mobile browser's own chrome on small screens.",
       },
       {
         id: "d",
-        text: "Logos shouldn't be interactive at all, since that confuses brand recognition.",
+        text: "Logos shouldn't be interactive at all, since clickable branding confuses recognition.",
       },
     ],
     correctOptionId: "a",
@@ -646,19 +663,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Bigger, well-separated targets are faster to acquire and reduce mis-taps (Fitts's Law).",
+        text: "Larger, well-spaced targets are quicker to hit and produce fewer mis-taps (Fitts's Law).",
       },
       {
         id: "b",
-        text: "Touch screens physically cannot register taps on elements smaller than ~44px.",
+        text: "Touch screens physically can't register a tap on anything smaller than about 44 pixels.",
       },
       {
         id: "c",
-        text: "Larger targets are needed for their text labels to meet contrast requirements.",
+        text: "Targets must be large enough for their text labels to clear the minimum contrast ratio.",
       },
       {
         id: "d",
-        text: "Bigger tap targets reduce cumulative layout shift while the page loads.",
+        text: "Bigger tap targets cut down on the cumulative layout shift that happens during loading.",
       },
     ],
     correctOptionId: "a",
@@ -675,19 +692,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Progressive disclosure — surface common options, tuck the rest behind 'Advanced' or grouped sections.",
+        text: "Progressive disclosure: surface the common options and tuck the rest behind 'Advanced' sections.",
       },
       {
         id: "b",
-        text: "Paginate the options across several numbered pages.",
+        text: "Split the forty options across several separate numbered pages that the user can click through one at a time.",
       },
       {
         id: "c",
-        text: "Add a search box and let users find the specific setting they need.",
+        text: "Add a search box so people can jump straight to whichever setting they happen to want.",
       },
       {
         id: "d",
-        text: "List all 40 alphabetically so their location is always predictable.",
+        text: "List all forty alphabetically so every option's location stays completely predictable.",
       },
     ],
     correctOptionId: "a",
@@ -704,19 +721,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Recognition is easier than recall — showing choices offloads memory onto the interface.",
+        text: "Recognition beats recall — showing the choices offloads remembering onto the interface itself.",
       },
       {
         id: "b",
-        text: "Because rendering a list is cheaper than validating free-text input.",
+        text: "Rendering a short list is computationally cheaper than validating free-text input.",
       },
       {
         id: "c",
-        text: "Because a recent-files list lets the app cache those files for faster opening.",
+        text: "A recent-files list lets the app pre-cache those files so they open noticeably faster.",
       },
       {
         id: "d",
-        text: "Because free-text filename inputs can't be reliably validated.",
+        text: "Free-text filename fields are impossible to validate in a reliable, consistent way.",
       },
     ],
     correctOptionId: "a",
@@ -732,19 +749,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Add friction proportional to the stakes: an explicit confirmation (e.g. type the name) and/or an undo window.",
+        text: "Add friction matching the stakes — a typed confirmation and/or an undo window before it's final.",
       },
       {
         id: "b",
-        text: "Position the button far from other controls so it's unlikely to be clicked by accident.",
+        text: "Position the button far away from other controls so that it's really quite unlikely to ever be hit by accident.",
       },
       {
         id: "c",
-        text: "Style it faint and low-contrast so it doesn't draw clicks.",
+        text: "Render it in a faint, low-contrast style so it doesn't attract any accidental clicks.",
       },
       {
         id: "d",
-        text: "Require a double-click on the button to confirm the user means it.",
+        text: "Require a quick double-click on the button to confirm the person really means it.",
       },
     ],
     correctOptionId: "a",
@@ -761,11 +778,11 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Show skeleton placeholders that mirror the final layout while data loads.",
+        text: "Show skeleton placeholders shaped like the final layout while the data loads in.",
       },
       {
         id: "b",
-        text: "Render the page immediately with zeros/empty values, then swap in real data.",
+        text: "Render the page immediately with zeros and blanks, then swap in the real values.",
       },
       {
         id: "c",
@@ -773,7 +790,7 @@ const uiux: QuestionDraft[] = [
       },
       {
         id: "d",
-        text: "Show a progress bar that animates to ~90% regardless of actual progress.",
+        text: "Animate a progress bar up to about 90% regardless of how loading is actually going.",
       },
     ],
     correctOptionId: "a",
@@ -790,19 +807,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Add a non-color cue — an icon and/or a short text message — so the error is perceivable without seeing color.",
+        text: "Add a non-color cue — an icon and/or text — so the error reads without relying on color.",
       },
       {
         id: "b",
-        text: "Darken the red so the border meets a 3:1 contrast ratio against the background.",
+        text: "Deepen the red until the border clears a 3:1 contrast ratio against its background.",
       },
       {
         id: "c",
-        text: "Add `aria-invalid` to the field so screen readers announce the error.",
+        text: "Add `aria-invalid` to the field so a screen reader announces it as being in error.",
       },
       {
         id: "d",
-        text: "Briefly animate the border so the change catches the user's eye.",
+        text: "Briefly animate the border when it changes so the error catches the user's eye.",
       },
     ],
     correctOptionId: "a",
@@ -818,19 +835,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Explain what will appear here and offer a clear primary action to get started.",
+        text: "Explain what will show up here and give a clear primary action to add the first item.",
       },
       {
         id: "b",
-        text: "Show a large friendly illustration so the screen doesn't look broken.",
+        text: "Show a large, friendly illustration so the screen doesn't come across as broken.",
       },
       {
         id: "c",
-        text: "Render the column headers and an empty table so the structure is visible.",
+        text: "Render the table's column headers above an empty body so the structure is visible.",
       },
       {
         id: "d",
-        text: "Auto-populate sample data so users can see what a full inbox looks like.",
+        text: "Pre-fill it with sample data so the user can picture what a populated view looks like.",
       },
     ],
     correctOptionId: "a",
@@ -847,19 +864,19 @@ const uiux: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Users can't tell what's blocking them — show inline guidance on what's required, or let them submit and reveal the errors.",
+        text: "Users can't see what's blocking them — show what's required, or let them submit and reveal errors.",
       },
       {
         id: "b",
-        text: "Disabled buttons can't receive focus, so screen-reader users won't know the form exists at all.",
+        text: "A disabled button can't take keyboard focus, so screen-reader users may never even discover the form at all.",
       },
       {
         id: "c",
-        text: "Browsers clear disabled buttons' forms on validation, losing the user's input.",
+        text: "Browsers wipe a disabled button's form on validation, losing whatever the user has typed.",
       },
       {
         id: "d",
-        text: "It's fine as long as every required field is marked with a red asterisk.",
+        text: "It's fine, as long as every required field is marked with a red asterisk beside it.",
       },
     ],
     correctOptionId: "a",
@@ -879,19 +896,19 @@ const a11y: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "`<button>` is focusable, operable with Enter/Space, and announced as a button — all for free.",
+        text: "A button is focusable, works with Enter and Space, and is announced as a button automatically.",
       },
       {
         id: "b",
-        text: "A `<div role=\"button\" tabindex=\"0\">` is fully equivalent, so it's really just personal preference.",
+        text: "A `<div role=\"button\" tabindex=\"0\">` is fully equivalent, so it's really just a style choice.",
       },
       {
         id: "c",
-        text: "Screen readers ignore `<div>` elements entirely, even ones containing text.",
+        text: "Screen readers skip over `<div>` elements entirely, even ones that contain visible text.",
       },
       {
         id: "d",
-        text: "`onClick` on a `<div>` doesn't fire on touch devices, only on desktop.",
+        text: "Click handlers on a `<div>` fire only on desktop and silently do nothing on touch devices.",
       },
     ],
     correctOptionId: "a",
@@ -906,18 +923,21 @@ const a11y: QuestionDraft[] = [
     prompt:
       "An image is purely decorative (a flourish beside a heading). What's the correct handling?",
     options: [
-      { id: "a", text: 'Give it an empty alt (`alt=""`) so screen readers skip it.' },
+      {
+        id: "a",
+        text: 'Give it an empty alt (`alt=""`) so assistive technology skips the image as decoration.',
+      },
       {
         id: "b",
-        text: "Omit the `alt` attribute entirely so there's no text to announce.",
+        text: "Drop the `alt` attribute completely so there's simply no text for it to announce.",
       },
       {
         id: "c",
-        text: 'Use `role="presentation"`, which also requires a short descriptive `alt`.',
+        text: 'Add `role="presentation"` together with a short descriptive `alt` for the decoration.',
       },
       {
         id: "d",
-        text: 'Set `aria-hidden="true"` and a brief `alt` like "decorative swirl".',
+        text: 'Set `aria-hidden="true"` and give it a brief `alt` such as "decorative swirl".',
       },
     ],
     correctOptionId: "a",
@@ -933,19 +953,19 @@ const a11y: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "A visible `<label>` associated via `htmlFor`/`id` (or wrapping the input).",
+        text: "A visible `<label>` tied to the input with `htmlFor`/`id`, or wrapped directly around it.",
       },
       {
         id: "b",
-        text: "An `aria-label` on the input — a visible label is optional once that's present.",
+        text: "An `aria-label` on the input, treating a visible label as optional once that's set.",
       },
       {
         id: "c",
-        text: "A `placeholder` plus a `title` attribute as a tooltip.",
+        text: "A `placeholder` for the prompt plus a `title` attribute that shows up as a tooltip.",
       },
       {
         id: "d",
-        text: "A nearby `<span>` referenced with `aria-describedby`.",
+        text: "A nearby `<span>` of text referenced from the input with `aria-describedby`.",
       },
     ],
     correctOptionId: "a",
@@ -961,9 +981,9 @@ const a11y: QuestionDraft[] = [
       "What's the WCAG 2.x AA minimum contrast ratio for normal-size body text?",
     options: [
       { id: "a", text: "4.5:1" },
-      { id: "b", text: "3:1" },
-      { id: "c", text: "7:1" },
-      { id: "d", text: "2:1" },
+      { id: "b", text: "3.0:1" },
+      { id: "c", text: "7.0:1" },
+      { id: "d", text: "2.0:1" },
     ],
     correctOptionId: "a",
     explanation:
@@ -978,19 +998,19 @@ const a11y: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Every interactive element must be reachable and operable by keyboard, with a visible focus indicator.",
+        text: "Every interactive element must be reachable and operable by keyboard, with a visible focus style.",
       },
       {
         id: "b",
-        text: "A logical tab order is enough; a visible focus ring is optional if the order is sensible.",
+        text: "A sensible tab order is enough on its own; a visible focus indicator is optional whenever that order is logical.",
       },
       {
         id: "c",
-        text: "Custom widgets may rely on a documented mouse-only fallback if keyboard support is hard.",
+        text: "Custom widgets may fall back to mouse-only operation when keyboard support is difficult.",
       },
       {
         id: "d",
-        text: "Only native form controls must be keyboard-operable; custom components are exempt.",
+        text: "Only native form controls must work by keyboard; custom components are exempt from that.",
       },
     ],
     correctOptionId: "a",
@@ -1006,19 +1026,19 @@ const a11y: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: 'Use a native `<input type="checkbox">` rather than recreating one from a generic element.',
+        text: 'Use a native `<input type="checkbox">` instead of rebuilding the control from a generic element.',
       },
       {
         id: "b",
-        text: 'Build a `<div role="checkbox" tabindex="0">` and wire up Space/Enter and `aria-checked` for full control.',
+        text: 'Build a `<div role="checkbox" tabindex="0">`, and then carefully wiring up Space, Enter, and `aria-checked` all by yourself.',
       },
       {
         id: "c",
-        text: "Use a styled `<button aria-pressed>` — a checkbox is just a toggle anyway.",
+        text: "Use a styled `<button aria-pressed>`, since a checkbox is really just a two-state toggle.",
       },
       {
         id: "d",
-        text: "Visually hide a native checkbox and mirror its state onto a `<div>` with ARIA roles.",
+        text: "Hide a real checkbox visually and mirror its checked state onto a `<div>` using ARIA.",
       },
     ],
     correctOptionId: "a",
@@ -1034,19 +1054,19 @@ const a11y: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Use one `<h1>` and don't skip levels — headings convey structure, and CSS controls size.",
+        text: "Use a single `<h1>` and don't skip levels; headings convey structure, and CSS handles size.",
       },
       {
         id: "b",
-        text: "Pick heading levels by the font size you want; readers go top-to-bottom regardless.",
+        text: "Choose heading levels by the size you want, since readers move through them top to bottom.",
       },
       {
         id: "c",
-        text: "Multiple `<h1>`s are fine per `<section>`, since each section starts its own outline.",
+        text: "Multiple `<h1>`s are fine per `<section>`, because each section starts its own outline.",
       },
       {
         id: "d",
-        text: "Skipping from `<h2>` to `<h4>` is fine as long as `<h3>` is unused everywhere.",
+        text: "Jumping from `<h2>` straight to `<h4>` is fine, as long as `<h3>` isn't used anywhere.",
       },
     ],
     correctOptionId: "a",
@@ -1063,19 +1083,19 @@ const a11y: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: 'Put it in an `aria-live="polite"` region so it\'s announced when it appears, without stealing focus.',
+        text: 'Put it in an `aria-live="polite"` region, so it\'s announced on appearance without taking focus.',
       },
       {
         id: "b",
-        text: 'Give it `role="alert"` so it\'s announced assertively, interrupting whatever is being read.',
+        text: 'Give it `role="alert"` so it\'s announced assertively, interrupting whatever the user happens to be reading at that moment.',
       },
       {
         id: "c",
-        text: 'Move focus to the toast with `tabindex="-1"` so the reader lands on it.',
+        text: 'Move focus to the toast with `tabindex="-1"` so the screen reader lands on and reads it.',
       },
       {
         id: "d",
-        text: 'Add `aria-label="Saved"` to the toast element so assistive tech picks it up.',
+        text: 'Add `aria-label="Saved"` to the toast element so assistive tech picks the message up.',
       },
     ],
     correctOptionId: "a",
@@ -1095,19 +1115,19 @@ const a11y: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "It isn't focusable or keyboard-operable and has no button role — use a real `<button>`.",
+        text: "It isn't focusable or keyboard-operable and carries no button role — use a real `<button>`.",
       },
       {
         id: "b",
-        text: "It works for mouse users; it just needs `cursor: pointer` to look clickable.",
+        text: "It works for mouse users and only needs `cursor: pointer` to look properly clickable.",
       },
       {
         id: "c",
-        text: "It needs `aria-label=\"Menu\"`, because a `<div>` has no accessible name.",
+        text: "It needs `aria-label=\"Menu\"`, because a plain `<div>` has no accessible name of its own.",
       },
       {
         id: "d",
-        text: "`onClick` on a `<div>` only fires through React's synthetic events, not natively.",
+        text: "Its `onClick` fires only through React's synthetic events, never as a native DOM event.",
       },
     ],
     correctOptionId: "a",
@@ -1129,15 +1149,15 @@ const a11y: QuestionDraft[] = [
       },
       {
         id: "b",
-        text: "The placeholder is fine as a label as long as it has sufficient contrast.",
+        text: "A placeholder works fine as a label as long as its text meets the contrast requirement.",
       },
       {
         id: "c",
-        text: "It's missing `aria-required`, which email fields need to be announced.",
+        text: "It's missing `aria-required`, which email fields need in order to be announced correctly.",
       },
       {
         id: "d",
-        text: "`type=\"email\"` suppresses the label; use `type=\"text\"` with a pattern instead.",
+        text: "`type=\"email\"` suppresses the label, so you should use `type=\"text\"` with a pattern instead.",
       },
     ],
     correctOptionId: "a",
@@ -1157,19 +1177,19 @@ const a11y: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: 'An accessible name — add `aria-label="Close"` (and hide the icon with `aria-hidden`).',
+        text: 'An accessible name — add `aria-label="Close"` and hide the icon with `aria-hidden`.',
       },
       {
         id: "b",
-        text: 'Give the `<XIcon>` `role="img"` so screen readers announce it as an image.',
+        text: 'Give the `<XIcon>` `role="img"` so screen readers announce it to the user as an image.',
       },
       {
         id: "c",
-        text: 'Set `title="Close"` on the `<XIcon>`; that becomes the button\'s accessible name.',
+        text: 'Put `title="Close"` on the icon, since that title becomes the button\'s accessible name.',
       },
       {
         id: "d",
-        text: 'Add `aria-hidden="true"` to the button so the unlabeled icon doesn\'t confuse users.',
+        text: 'Add `aria-hidden="true"` to the button so the unlabeled icon can\'t confuse the user.',
       },
     ],
     correctOptionId: "a",
@@ -1271,19 +1291,19 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "The `[]` deps run the effect once, so `onScroll` closes over `count` from the first render. Read it from a ref, or re-subscribe when `count` changes.",
+        text: "The `[]` deps run the effect once, so `onScroll` closes over `count` from the first render.",
       },
       {
         id: "b",
-        text: "`addEventListener` only fires the handler once unless you pass `{ once: false }`.",
+        text: "`addEventListener` only invokes the handler a single time unless you pass `{ once: false }`.",
       },
       {
         id: "c",
-        text: "`console.log` inside effects is throttled by React in development mode.",
+        text: "`console.log` calls inside an effect are throttled by React while in development mode.",
       },
       {
         id: "d",
-        text: "State updates are asynchronous, so `count` hasn't committed when `onScroll` runs.",
+        text: "State updates are asynchronous, so `count` hasn't committed by the time `onScroll` runs.",
       },
     ],
     correctOptionId: "a",
@@ -1306,19 +1326,19 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "`useState(amount)` only uses `amount` as the initial value; later prop changes are ignored. Render the prop directly (or reset via `key`) rather than copying it into state.",
+        text: "`useState(amount)` only uses `amount` as the initial value; later prop changes are ignored.",
       },
       {
         id: "b",
-        text: "You need `useState(() => amount)` so the initializer re-runs whenever `amount` changes.",
+        text: "You need `useState(() => amount)` so the lazy initializer re-runs whenever `amount` changes.",
       },
       {
         id: "c",
-        text: "Function components can't sync props to state without `componentWillReceiveProps`.",
+        text: "Function components can't sync props to state without a `componentWillReceiveProps` hook.",
       },
       {
         id: "d",
-        text: "Wrapping `<Price>` in `React.memo` would make it re-read the prop.",
+        text: "Wrapping `<Price>` in `React.memo` would make it re-read the `amount` prop on each change.",
       },
     ],
     correctOptionId: "a",
@@ -1363,19 +1383,19 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Give the editor `key={profileId}` so React remounts it with fresh state when the profile changes.",
+        text: "Give the editor `key={profileId}` so React remounts it with fresh state on a switch.",
       },
       {
         id: "b",
-        text: "Add a `useEffect` that resets every field whenever `profileId` changes.",
+        text: "Add a `useEffect` that resets every field whenever the `profileId` prop changes.",
       },
       {
         id: "c",
-        text: "Lift all draft state into the parent and clear it in the switch handler.",
+        text: "Lift all the draft state up to the parent and clear it inside the switch handler.",
       },
       {
         id: "d",
-        text: "Wrap the editor in `React.memo` so it re-initializes on new props.",
+        text: "Wrap the editor in `React.memo` so it re-initializes its state when new props arrive.",
       },
     ],
     correctOptionId: "a",
@@ -1399,19 +1419,19 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "One — React 18+ automatically batches updates, including those after `await` and in timeouts/promises.",
+        text: "One — React 18+ batches updates automatically, including those after `await` and in timeouts.",
       },
       {
         id: "b",
-        text: "Two — automatic batching applies only inside React event handlers, not async callbacks.",
+        text: "Two — automatic batching applies only inside React's own synthetic event handlers, never in async callbacks.",
       },
       {
         id: "c",
-        text: "Two, unless both setters are wrapped in `flushSync`.",
+        text: "Two, unless you wrap both `setState` calls together inside a single `flushSync`.",
       },
       {
         id: "d",
-        text: "Zero until the next user interaction flushes the queue.",
+        text: "Zero, until the next user interaction comes along and flushes the update queue.",
       },
     ],
     correctOptionId: "a",
@@ -1429,15 +1449,24 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Submitting an irreversible payment, where a silent rollback would mislead the user about whether money actually moved.",
+        text: "Confirming a bank payment, where a later silent rollback hides whether money actually moved.",
       },
-      { id: "b", text: "Liking or unliking a post." },
-      { id: "c", text: "Toggling a preference that's trivial to revert." },
-      { id: "d", text: "Reordering items in a list." },
+      {
+        id: "b",
+        text: "Liking a post, where a failed request can quietly revert the little heart icon back to its previous state.",
+      },
+      {
+        id: "c",
+        text: "Renaming a file, where a failed save can simply restore the file's previous name.",
+      },
+      {
+        id: "d",
+        text: "Starring an email, where a failed toggle can just flip the star back again.",
+      },
     ],
     correctOptionId: "a",
     explanation:
-      "Optimistic UI shines for cheap, reversible, low-stakes actions where failure is rare and recoverable. For high-stakes or irreversible operations like payments, showing premature success is dangerous — users need a truthful, confirmed result.",
+      "Optimistic UI shines for cheap, reversible, low-stakes actions where a failure can quietly roll back. For a payment, premature 'success' is dangerous and irreversible — the user could believe money moved when it didn't. The other three revert harmlessly.",
   },
   {
     id: "ch-uiux-loader-timing",
@@ -1450,19 +1479,19 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Delay showing the loader ~300–500ms, so fast responses never flash a spinner but slow ones still get feedback.",
+        text: "Delay showing the loader ~300–500ms, so quick responses skip it but slow ones still show it.",
       },
       {
         id: "b",
-        text: "Always show a spinner immediately, for consistency across requests.",
+        text: "Show a spinner immediately on every request, to keep the behaviour consistent across the app.",
       },
       {
         id: "c",
-        text: "Never show a loader — 2s is within acceptable response limits.",
+        text: "Don't show a loader at all, since a two-second wait is well within acceptable limits.",
       },
       {
         id: "d",
-        text: "Show a full-screen skeleton on every request regardless of how long it takes.",
+        text: "Show a full-screen skeleton on every request, no matter how long it ends up taking.",
       },
     ],
     correctOptionId: "a",
@@ -1480,24 +1509,24 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Show an error summary at the top — each item links to and focuses its field — and move focus to the summary on submit.",
+        text: "Show a focusable error summary at the top, each item linking to and focusing its field.",
       },
       {
         id: "b",
-        text: "Scroll to the bottom so the submit button stays visible.",
+        text: "Scroll the page down to the submit button so it stays visible after the failed attempt.",
       },
       {
         id: "c",
-        text: "Disable the valid fields so the user only sees what's broken.",
+        text: "Disable all the valid fields so the user only has the broken ones left to deal with.",
       },
       {
         id: "d",
-        text: "Show a single generic 'Please fix the errors below' toast.",
+        text: "Show one generic 'please fix the errors below' message pinned to the top of the form.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "For long forms, a focusable error summary that links to each invalid field (plus inline messages) is the accessible, recoverable pattern — the user immediately sees what's wrong and can jump straight to it. A generic toast or hiding fields leaves them hunting.",
+      "For long forms, a focusable error summary that links to each invalid field (plus inline messages) is the accessible, recoverable pattern — the user immediately sees what's wrong and can jump straight to it. A generic message or hiding fields leaves them hunting.",
   },
   {
     id: "ch-uiux-modal-misuse",
@@ -1509,11 +1538,20 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "A long, multi-step form with content users may need to cross-reference elsewhere in the app.",
+        text: "A long, multi-step form the user may need to reference other parts of the app to finish.",
       },
-      { id: "b", text: "Confirming an irreversible, destructive action." },
-      { id: "c", text: "A short, focused task such as renaming an item." },
-      { id: "d", text: "An important alert that needs explicit acknowledgement." },
+      {
+        id: "b",
+        text: "Confirming a single destructive action that can't easily be undone afterwards.",
+      },
+      {
+        id: "c",
+        text: "A short, self-contained task like renaming one item in a list view.",
+      },
+      {
+        id: "d",
+        text: "An urgent alert the user must explicitly acknowledge before they can continue.",
+      },
     ],
     correctOptionId: "a",
     explanation:
@@ -1530,19 +1568,19 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "It makes the footer and anything below the feed hard to reach, and breaks restoring your position on back-navigation.",
+        text: "It makes the footer hard to reach and breaks returning to your spot after navigating away.",
       },
       {
         id: "b",
-        text: "Infinite scroll can't be made accessible under any circumstances.",
+        text: "Infinite scroll simply cannot be implemented accessibly under any circumstances.",
       },
       {
         id: "c",
-        text: "Pagination always transfers less data and therefore always loads faster.",
+        text: "Pagination always transfers less data, so it always finishes loading faster than scrolling.",
       },
       {
         id: "d",
-        text: "Infinite scroll prevents the browser from caching any fetched results.",
+        text: "Infinite scroll stops the browser from caching any of the results it fetches along the way.",
       },
     ],
     correctOptionId: "a",
@@ -1560,19 +1598,19 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Move focus to the new view's heading (or its container) and/or announce the change, since no full page load occurs to reset focus.",
+        text: "Move focus to the new view's heading or container, since no full load occurs to reset it.",
       },
       {
         id: "b",
-        text: "Nothing — the browser moves focus to the top of the document on any navigation.",
+        text: "Nothing — the browser moves focus back to the top of the document on any navigation.",
       },
       {
         id: "c",
-        text: "Wrap the whole new view in `aria-live=\"assertive\"` so it's read out.",
+        text: "Wrap the entire incoming view in `aria-live=\"assertive\"` so the whole thing is read out.",
       },
       {
         id: "d",
-        text: "Return focus to the nav link that was activated.",
+        text: "Send focus back to the navigation link the user activated to trigger the change.",
       },
     ],
     correctOptionId: "a",
@@ -1592,24 +1630,24 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "The accessible name no longer contains the visible text, so a voice-control user saying 'click Search' can't activate it (WCAG 2.5.3, Label in Name).",
+        text: "The accessible name drops the visible text, so saying 'click Search' won't activate it.",
       },
       {
         id: "b",
-        text: "`aria-label` is ignored whenever a button has visible text, so it has no effect.",
+        text: "`aria-label` is ignored whenever a button already has visible text, so it does nothing here.",
       },
       {
         id: "c",
-        text: "Screen readers announce both, so the user hears 'Submit query Search'.",
+        text: "Screen readers read both, so the user hears 'Submit query Search' announced together.",
       },
       {
         id: "d",
-        text: "`aria-label` is only valid on form inputs, not on buttons.",
+        text: "`aria-label` is only valid on form inputs, so it has no effect on a button element.",
       },
     ],
     correctOptionId: "a",
     explanation:
-      "`aria-label` overrides the visible text as the accessible name. When the visible label isn't part of that name, speech-input users who say what they see can't target the control — the Label in Name failure. Keep the visible text within the accessible name.",
+      "`aria-label` overrides the visible text as the accessible name. When the visible label isn't part of that name, speech-input users who say what they see can't target the control — the Label in Name failure (WCAG 2.5.3). Keep the visible text within the accessible name.",
   },
   {
     id: "ch-a11y-aria-disabled",
@@ -1622,19 +1660,19 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "`aria-disabled=\"true\"` (and no-op the handler) — it conveys the disabled state while keeping the control in the tab order.",
+        text: "`aria-disabled=\"true\"` with a no-op handler — it shows the state but stays in the tab order.",
       },
       {
         id: "b",
-        text: "The native `disabled` attribute, which keeps it focusable but greys it out.",
+        text: "The native `disabled` attribute, which keeps the control focusable while greying it out.",
       },
       {
         id: "c",
-        text: "Hide it with `hidden` until it becomes available.",
+        text: "`hidden`, so the control disappears entirely until the moment it becomes available again.",
       },
       {
         id: "d",
-        text: "`tabindex=\"-1\"` plus a greyed-out style.",
+        text: "`tabindex=\"-1\"` together with a greyed-out style to signal that it's currently unavailable.",
       },
     ],
     correctOptionId: "a",
@@ -1651,19 +1689,19 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "Trap focus while open, return focus to the trigger on close, label it (`aria-labelledby`), expose `role=\"dialog\"`/`aria-modal`, and close on Escape.",
+        text: "Trap focus while open, restore it on close, label it, use `role=\"dialog\"`/`aria-modal`, close on Escape.",
       },
       {
         id: "b",
-        text: "Center it visually and dim the background with an overlay.",
+        text: "Center it on the screen and dim out the rest of the page behind a large, semi-transparent background overlay.",
       },
       {
         id: "c",
-        text: "Put `aria-hidden=\"true\"` on the dialog so the rest of the page isn't announced.",
+        text: "Put `aria-hidden=\"true\"` on the dialog itself so the page behind it isn't announced.",
       },
       {
         id: "d",
-        text: "Auto-focus the first field on open — nothing else is needed.",
+        text: "Auto-focus the first field when it opens — and nothing beyond that is really required.",
       },
     ],
     correctOptionId: "a",
@@ -1681,19 +1719,19 @@ const challenge: QuestionDraft[] = [
     options: [
       {
         id: "a",
-        text: "To a sensible neighbour — the next row, or the previous one if it was last — never left on the removed node or dropped to `<body>`.",
+        text: "To a sensible neighbour — the next row, or the previous one if the deleted row was last.",
       },
       {
         id: "b",
-        text: "It doesn't matter; the browser handles focus when an element is removed.",
+        text: "Nowhere in particular; the browser handles focus correctly when an element is removed.",
       },
       {
         id: "c",
-        text: "Back to the top of the page so the user can re-orient.",
+        text: "Back to the top of the page, so the user can get their bearings and start again.",
       },
       {
         id: "d",
-        text: "Only into an `aria-live` region announcing the deletion, with no focus move.",
+        text: "Only into an `aria-live` region announcing the deletion, with no change of focus at all.",
       },
     ],
     correctOptionId: "a",

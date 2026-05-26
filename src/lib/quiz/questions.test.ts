@@ -31,4 +31,32 @@ describe("QUESTION_BANK", () => {
       if (q.challenge) expect(q.difficulty, q.id).toBe("hard");
     }
   });
+
+  // Guards against the "longest option is always correct" tell.
+  const mcqs = QUESTION_BANK.filter((q) => q.type === "mcq");
+
+  it("doesn't make the correct answer the longest option in most questions", () => {
+    let correctIsLongest = 0;
+    for (const q of mcqs) {
+      if (q.type !== "mcq") continue;
+      const longest = Math.max(...q.options.map((o) => o.text.length));
+      const correct = q.options.find((o) => o.id === q.correctOptionId)!;
+      // "Uniquely longest" — strictly longer than every other option.
+      const isUniquelyLongest =
+        correct.text.length === longest &&
+        q.options.filter((o) => o.text.length === longest).length === 1;
+      if (isUniquelyLongest) correctIsLongest++;
+    }
+    // Random would be ~25%; the old bank was ~80%+. Keep it well below half.
+    expect(correctIsLongest / mcqs.length).toBeLessThan(0.4);
+  });
+
+  it("keeps options within a question similar in length", () => {
+    for (const q of mcqs) {
+      if (q.type !== "mcq") continue;
+      const lengths = q.options.map((o) => o.text.length);
+      const ratio = Math.max(...lengths) / Math.min(...lengths);
+      expect(ratio, `${q.id} option lengths vary too much`).toBeLessThan(2.2);
+    }
+  });
 });
